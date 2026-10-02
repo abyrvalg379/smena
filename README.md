@@ -12,7 +12,7 @@ nothing to press, so there is nothing to forget. Tasks with keywords catch the
 right windows automatically; a manual stopwatch is there when you want it.
 
 Everything stays on your machine: no cloud, no accounts, no telemetry, no
-screenshots. Data lives in `%APPDATA%\UCHET\` as plain JSON.
+screenshots. Data lives in `%APPDATA%\SMENA\` as plain JSON.
 
 | | |
 |---|---|
@@ -56,9 +56,9 @@ The build is self-contained — Windows 10/11 x64, no runtime installation neede
 Requires the .NET 8 SDK (Windows, WPF):
 
 ```
-dotnet build UCHET.sln
-dotnet test  UCHET.sln
-dotnet run --project UCHET_CS
+dotnet build SMENA.sln
+dotnet test  SMENA.sln
+dotnet run --project SMENA_CS
 ```
 
 ## Hotkeys

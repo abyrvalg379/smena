@@ -12,7 +12,7 @@ SMENA — локальный трекер для тех, кто забывает
 секундомер есть, но по желанию.
 
 Всё остаётся на вашей машине: без облака, аккаунтов, телеметрии и скриншотов.
-Данные лежат в `%APPDATA%\UCHET\` обычным JSON.
+Данные лежат в `%APPDATA%\SMENA\` обычным JSON.
 
 | | |
 |---|---|
@@ -62,9 +62,9 @@ SMENA — локальный трекер для тех, кто забывает
 Нужен .NET 8 SDK (Windows, WPF):
 
 ```
-dotnet build UCHET.sln
-dotnet test  UCHET.sln
-dotnet run --project UCHET_CS
+dotnet build SMENA.sln
+dotnet test  SMENA.sln
+dotnet run --project SMENA_CS
 ```
 
 ## Хоткеи

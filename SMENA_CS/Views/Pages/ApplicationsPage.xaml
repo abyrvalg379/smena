@@ -1,0 +1,46 @@
+<UserControl x:Class="SMENA.Views.ApplicationsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style x:Key="Hdr" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource FgDim}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <TextBlock Text="APPLICATIONS — selected day" Style="{StaticResource Hdr}" Margin="4,0,0,8"/>
+        <Border Grid.Row="1" Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Border}"
+                BorderThickness="1" CornerRadius="8" Padding="16,12" MaxWidth="760" HorizontalAlignment="Left" Width="760">
+            <ItemsControl ItemsSource="{Binding AppRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,5">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource Fg}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Column="1" Text="{Binding DurationText}" FontSize="12" Foreground="{DynamicResource Accent}"/>
+                            </Grid>
+                            <Border Grid.Row="1" Height="6" Background="{DynamicResource Track}" CornerRadius="3" Margin="0,4,0,0">
+                                <Rectangle HorizontalAlignment="Left" Fill="{DynamicResource Accent}" RadiusX="3" RadiusY="3"
+                                           Width="{Binding Percent, FallbackValue=0}" Opacity="0.8"/>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+    </Grid>
+</UserControl>

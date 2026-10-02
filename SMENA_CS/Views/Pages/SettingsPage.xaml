@@ -1,0 +1,165 @@
+<UserControl x:Class="SMENA.Views.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style x:Key="Hdr" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource FgDim}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <!-- dark themed combo for string items (FLOMASTER DarkComboStringStyle, SMENA keys) -->
+        <Style x:Key="DarkCombo" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Name="ToggleButton"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="{DynamicResource PanelHi}" BorderBrush="{DynamicResource Border}"
+                                                BorderThickness="1" CornerRadius="4" Padding="8,4">
+                                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding SelectedItem, RelativeSource={RelativeSource TemplatedParent}}"
+                                               Foreground="{DynamicResource Fg}" FontSize="12" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe Fluent Icons" FontSize="9"
+                                               Foreground="{DynamicResource FgDim}" VerticalAlignment="Center" Margin="8,0,2,0"/>
+                                </Grid>
+                            </ToggleButton>
+                            <Popup Name="Popup" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True"
+                                   Placement="Bottom" VerticalOffset="2">
+                                <Border Background="{DynamicResource PanelHi}" BorderBrush="{DynamicResource Border}"
+                                        BorderThickness="1" CornerRadius="4"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <ListBox Name="ListBox" ItemsSource="{Binding Items, RelativeSource={RelativeSource TemplatedParent}}"
+                                             SelectedItem="{Binding SelectedItem, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                             Background="Transparent" Foreground="{DynamicResource Fg}" BorderThickness="0" Margin="2"
+                                             MaxHeight="260" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                        <ListBox.ItemContainerStyle>
+                                            <Style TargetType="ListBoxItem">
+                                                <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="ListBoxItem">
+                                                            <Border Name="Bd" Background="{TemplateBinding Background}" Padding="6,5" CornerRadius="3">
+                                                                <ContentPresenter/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentSoft}"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsSelected" Value="True">
+                                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentSoft}"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ListBox.ItemContainerStyle>
+                                    </ListBox>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
+            <Setter Property="Background" Value="{DynamicResource PanelHi}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1" CornerRadius="5" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+        <TextBlock Text="TRACKING" Style="{StaticResource Hdr}" Margin="4,0,0,8"/>
+        <Border Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                CornerRadius="8" Padding="16,12">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="240"/>
+                        <ColumnDefinition Width="90"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Idle timeout (minutes):" FontSize="12" Foreground="{DynamicResource Fg}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="1" Text="{Binding IdleTimeoutMinutes, UpdateSourceTrigger=LostFocus}"/>
+                </Grid>
+                <CheckBox Content="Auto mode — detect from active app / file" FontSize="12" Foreground="{DynamicResource Fg}"
+                          IsChecked="{Binding AutoMode, Mode=TwoWay}" Margin="0,12,0,0"/>
+                <CheckBox Content="Idle detection — pause after inactivity" FontSize="12" Foreground="{DynamicResource Fg}"
+                          IsChecked="{Binding IdleDetection, Mode=TwoWay}" Margin="0,10,0,0"/>
+                <CheckBox Content="Track files (show file chips)" FontSize="12" Foreground="{DynamicResource Fg}"
+                          IsChecked="{Binding TrackFiles, Mode=TwoWay}" Margin="0,10,0,0"/>
+                <Button Click="PauseToggle_Click" Content="PAUSE / RESUME TRACKING NOW" Margin="0,14,0,0" HorizontalAlignment="Left"/>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Text="GENERAL" Style="{StaticResource Hdr}" Margin="4,18,0,8"/>
+        <Border Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                CornerRadius="8" Padding="16,12">
+            <StackPanel>
+                <CheckBox Content="Start with Windows" FontSize="12" Foreground="{DynamicResource Fg}"
+                          IsChecked="{Binding AutoStart, Mode=TwoWay}"/>
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                    <Button Click="DesktopShortcut_Click" Content="DESKTOP SHORTCUT" FontSize="10" Padding="8,4"/>
+                    <Button Click="StartMenuShortcut_Click" Content="START MENU SHORTCUT" FontSize="10" Padding="8,4" Margin="8,0,0,0"/>
+                </StackPanel>
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding DataFolder}" Foreground="{DynamicResource FgDim}" FontSize="11"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    <Button Grid.Column="1" Click="OpenFolder_Click" Content="OPEN DATA FOLDER" FontSize="10" Padding="8,4"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Text="APPEARANCE" Style="{StaticResource Hdr}" Margin="4,18,0,8"/>
+        <Border Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                CornerRadius="8" Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="240"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Theme:" FontSize="12" Foreground="{DynamicResource Fg}" VerticalAlignment="Center"/>
+                <ComboBox Grid.Column="1" Style="{StaticResource DarkCombo}"
+                          ItemsSource="{Binding ThemeNames}" SelectedItem="{Binding ThemeName, Mode=TwoWay}"
+                          MinWidth="160" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+    </StackPanel>
+</UserControl>
