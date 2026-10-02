@@ -109,15 +109,23 @@ namespace SMENA.Views
         {
             if (_positionApplied) return;
             _positionApplied = true;
-            var wa = SystemParameters.WorkArea;
-            if (_vm.WidgetLeft is double l && _vm.WidgetTop is double t &&
-                l > -Width + 80 && l < wa.Right - 80 && t > 0 && t < wa.Bottom - 80)
+
+            // multi-monitor aware: validate against the WHOLE virtual desktop, not the
+            // primary work area — a widget parked on a secondary screen must survive restarts
+            var vsL = SystemParameters.VirtualScreenLeft;
+            var vsT = SystemParameters.VirtualScreenTop;
+            var vsR = vsL + SystemParameters.VirtualScreenWidth;
+            var vsB = vsT + SystemParameters.VirtualScreenHeight;
+
+            if (_vm.WidgetLeft is double l && _vm.WidgetTop is double t)
             {
-                Left = l;
-                Top = t;
+                // clamp (don't reset): a resolution change keeps the widget reachable
+                Left = Math.Clamp(l, vsL, Math.Max(vsL, vsR - Width));
+                Top = Math.Clamp(t, vsT, Math.Max(vsT, vsB - 450));
             }
             else
             {
+                var wa = SystemParameters.WorkArea;
                 Left = wa.Right - Width - 20;
                 Top = wa.Top + 70;
             }
