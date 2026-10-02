@@ -76,12 +76,19 @@ namespace SMENA.Views
         [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
         private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOW info);
 
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hwnd, out RECTW rect);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+
         private const uint MONITOR_DEFAULTTONEAREST = 2;
+        private const uint SWP_NOZORDER = 0x0004;
+        private const uint SWP_NOOWNERZORDER = 0x0200;
 
         /// <summary>Work area (screen minus taskbar) of the monitor the window is on.</summary>
-        private RECTW WorkAreaOfWindow()
+        private RECTW WorkAreaOfMonitor(IntPtr hwnd)
         {
-            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
             var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
             var info = new MONITORINFOW { CbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFOW>() };
             if (monitor != IntPtr.Zero && GetMonitorInfo(monitor, ref info))
@@ -95,16 +102,37 @@ namespace SMENA.Views
             };
         }
 
-        /// <summary>Borderless windows maximize OVER the taskbar; pin the maximized frame
-        /// into the work area of the current monitor instead.</summary>
+        /// <summary>Borderless windows maximize OVER the taskbar. WindowChrome re-applies
+        /// its own full-monitor frame right AFTER StateChanged, so a single pin races and
+        /// loses. Pin via physical SetWindowPos, deferred and retried, until it sticks.</summary>
         private void ShellWindow_StateChanged(object? sender, EventArgs e)
         {
             if (WindowState != WindowState.Maximized) return;
-            var wa = WorkAreaOfWindow();
-            Left = wa.Left;
-            Top = wa.Top;
-            Width = wa.Right - wa.Left;
-            Height = wa.Bottom - wa.Top;
+            PinMaximizedToWorkArea();
+            var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(60) };
+            int tries = 0;
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                if (WindowState != WindowState.Maximized) return;
+                PinMaximizedToWorkArea();
+                if (++tries < 4) timer.Start();
+            };
+            timer.Start();
+        }
+
+        private void PinMaximizedToWorkArea()
+        {
+            if (WindowState != WindowState.Maximized) return;
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero || !GetWindowRect(hwnd, out var r)) return;
+            var wa = WorkAreaOfMonitor(hwnd);
+            // already pinned (within 2 px) — WindowChrome has not re-applied, nothing to fight
+            if (Math.Abs(r.Left - wa.Left) <= 2 && Math.Abs(r.Top - wa.Top) <= 2 &&
+                Math.Abs(r.Right - wa.Right) <= 2 && Math.Abs(r.Bottom - wa.Bottom) <= 2) return;
+            SetWindowPos(hwnd, IntPtr.Zero, wa.Left, wa.Top,
+                wa.Right - wa.Left, wa.Bottom - wa.Top,
+                SWP_NOZORDER | SWP_NOOWNERZORDER);
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -171,7 +199,6 @@ namespace SMENA.Views
 
         private void ToggleFullscreen()
         {
-            // maximized bounds follow the work area (taskbar stays visible) via WM_GETMINMAXINFO
             WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         }
 
