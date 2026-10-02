@@ -249,8 +249,22 @@
         <Grid Grid.Column="1" Margin="20,0,14,14" MouseLeftButtonDown="Chrome_MouseLeftButtonDown">
             <Grid.RowDefinitions>
                 <RowDefinition Height="46"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
+
+            <!-- update banner -->
+            <Border Grid.Row="1" Background="{DynamicResource AccentSoft}" BorderBrush="{DynamicResource Accent}"
+                    BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,0,10"
+                    Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVis}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Click="UpdateDismiss_Click" Content="✕" Padding="6,2" FontSize="10"/>
+                    <Button DockPanel.Dock="Right" Click="UpdateDownload_Click" Content="DOWNLOAD" Padding="10,3"
+                            FontSize="10" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                    <TextBlock Text="{Binding UpdateLabel}" FontSize="11" Foreground="{DynamicResource Fg}"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                </DockPanel>
+            </Border>
 
             <!-- page header -->
             <Grid Grid.Row="0">
@@ -280,7 +294,7 @@
                 </Border>
             </Grid>
 
-            <ContentControl Grid.Row="1" x:Name="PageHost" MouseLeftButtonDown="Chrome_MouseLeftButtonDown"/>
+            <ContentControl Grid.Row="2" x:Name="PageHost" MouseLeftButtonDown="Chrome_MouseLeftButtonDown"/>
         </Grid>
 
         <!-- ================= RIGHT RAIL ================= -->

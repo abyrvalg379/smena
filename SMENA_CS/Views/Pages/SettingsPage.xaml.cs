@@ -17,6 +17,7 @@ namespace SMENA.Views
         }
 
         private void PauseToggle_Click(object sender, RoutedEventArgs e) => _vm.TogglePause();
+        private void CheckUpdates_Click(object sender, RoutedEventArgs e) => _vm.CheckForUpdates(silent: false);
         private void DesktopShortcut_Click(object sender, RoutedEventArgs e) => _vm.CreateShortcut(desktop: true);
         private void StartMenuShortcut_Click(object sender, RoutedEventArgs e) => _vm.CreateShortcut(desktop: false);
         private void OpenFolder_Click(object sender, RoutedEventArgs e) =>

@@ -288,6 +288,9 @@ namespace SMENA.Views
             _vm.DeleteEditingBlocks();
         }
 
+        private void UpdateDismiss_Click(object sender, RoutedEventArgs e) => _vm.DismissUpdate();
+        private void UpdateDownload_Click(object sender, RoutedEventArgs e) => _vm.OpenReleasesPage();
+
         private void AssignClose_Click(object sender, RoutedEventArgs e) => _vm.CancelAssign();
         private void EditBlockClose_Click(object sender, RoutedEventArgs e) => _vm.CloseEditBlock();
         private void EditBlockSave_Click(object sender, RoutedEventArgs e) => _vm.SaveEditBlock();

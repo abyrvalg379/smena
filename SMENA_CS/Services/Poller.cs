@@ -164,6 +164,15 @@ namespace SMENA.Services
             string title = Win32.GetWindowTitle(hwnd);
             Win32.GetWindowThreadProcessId(hwnd, out uint pid);
             string process = GetProcessName((int)pid);
+
+            // privacy exclusions: a matching window leaves a gap, like idle
+            if (Exclusions.IsMatch(_config.Current.Exclusions, process, title))
+            {
+                if (_open != null) { CloseOpen(now); _log.Save(); }
+                Emit(TrackState.Idle);
+                return;
+            }
+
             var task = _matcher.Match(process, title);
 
             if (_open != null &&

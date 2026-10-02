@@ -84,5 +84,9 @@ namespace SMENA.Models
 
         // ThemeManager key ("smena", "blender", …)
         public string Theme { get; set; } = "smena";
+
+        // Privacy: newline-separated substrings; a window whose title or process name
+        // contains any line is not tracked at all (banking, passwords, personal stuff).
+        public string Exclusions { get; set; } = "";
     }
 }

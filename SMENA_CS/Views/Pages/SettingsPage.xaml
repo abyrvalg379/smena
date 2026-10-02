@@ -144,6 +144,18 @@
                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                     <Button Grid.Column="1" Click="OpenFolder_Click" Content="OPEN DATA FOLDER" FontSize="10" Padding="8,4"/>
                 </Grid>
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Version:" FontSize="11" Foreground="{DynamicResource FgDim}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding AppVersion}" FontSize="11" Foreground="{DynamicResource Fg}"
+                                   Margin="5,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Click="CheckUpdates_Click" Content="CHECK FOR UPDATES" FontSize="10" Padding="8,4"/>
+                </Grid>
             </StackPanel>
         </Border>
 
@@ -160,6 +172,20 @@
                           ItemsSource="{Binding ThemeNames}" SelectedItem="{Binding ThemeName, Mode=TwoWay}"
                           MinWidth="160" HorizontalAlignment="Left" VerticalAlignment="Center"/>
             </Grid>
+        </Border>
+
+        <TextBlock Text="PRIVACY" Style="{StaticResource Hdr}" Margin="4,18,0,8"/>
+        <Border Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                CornerRadius="8" Padding="16,12">
+            <StackPanel>
+                <TextBlock Text="Windows matching a line below are NOT tracked (matches window title or process name, case-insensitive). Use it for banking, passwords, personal apps."
+                           FontSize="11" Foreground="{DynamicResource FgDim}" TextWrapping="Wrap"/>
+                <TextBox MinHeight="64" Margin="0,8,0,0" AcceptsReturn="True" VerticalContentAlignment="Top"
+                         VerticalScrollBarVisibility="Auto" FontSize="12"
+                         Text="{Binding Exclusions, UpdateSourceTrigger=LostFocus}"/>
+                <TextBlock Text="One pattern per line, e.g.: bank · password · Incognito" FontSize="10"
+                           Foreground="{DynamicResource FgDim}" Margin="0,6,0,0"/>
+            </StackPanel>
         </Border>
     </StackPanel>
 </UserControl>

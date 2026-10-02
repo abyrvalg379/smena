@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using SMENA.Models;
@@ -431,6 +432,7 @@ namespace SMENA.ViewModels
             ReloadProjects();
             RefreshStatus(null);
             RefreshAll();
+            CheckForUpdates(silent: true);
         }
 
         private void OnStatus(TrackStatus s)
@@ -1158,6 +1160,63 @@ namespace SMENA.ViewModels
             RefreshAll();
         }
 
+        // ---- update check ----
+
+        private bool _updateAvailable;
+        public bool UpdateAvailable
+        {
+            get => _updateAvailable;
+            set { _updateAvailable = value; OnPropertyChanged(nameof(UpdateAvailable)); }
+        }
+
+        private string _updateLabel = "";
+        public string UpdateLabel
+        {
+            get => _updateLabel;
+            set { _updateLabel = value; OnPropertyChanged(nameof(UpdateLabel)); }
+        }
+
+        private bool _updateDismissed;
+
+        public void DismissUpdate() { _updateDismissed = true; UpdateAvailable = false; }
+
+        public void OpenReleasesPage()
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+                    UpdateChecker.ReleasesUrl) { UseShellExecute = true });
+            }
+            catch { StatusText = "Could not open the browser."; }
+        }
+
+        public string AppVersion => "v" + UpdateChecker.CurrentVersion().ToString();
+
+        /// <summary>silent=true: no status text, used for the startup check.</summary>
+        public async void CheckForUpdates(bool silent)
+        {
+            try
+            {
+                await Task.Delay(silent ? 8000 : 0);
+                var tag = await UpdateChecker.FetchLatestTagAsync();
+                if (tag == null) { if (!silent) StatusText = "Could not check for updates."; return; }
+                if (UpdateChecker.IsNewer(tag, UpdateChecker.CurrentVersion()))
+                {
+                    if (_updateDismissed) return;
+                    UpdateLabel = $"SMENA {tag} is available — click to download.";
+                    UpdateAvailable = true;
+                }
+                else if (!silent)
+                {
+                    StatusText = $"SMENA is up to date ({AppVersion}).";
+                }
+            }
+            catch
+            {
+                if (!silent) StatusText = "Could not check for updates.";
+            }
+        }
+
         // ---- theme ----
 
         public List<string> ThemeNames =>
@@ -1175,6 +1234,13 @@ namespace SMENA.ViewModels
                 ThemeApplier.Apply(key);   // fires ThemeChanged → RefreshAll
                 OnPropertyChanged(nameof(ThemeName));
             }
+        }
+
+        /// <summary>Persist the log after a timeline drag and refresh every view.</summary>
+        public void SaveBlocks()
+        {
+            _log.Save();
+            RefreshAll();
         }
 
         public BlockRow? FindRowForBlock(ActivityBlock block) =>
@@ -1479,6 +1545,12 @@ namespace SMENA.ViewModels
         {
             get => _config.Current.TrackFiles;
             set { _config.Current.TrackFiles = value; _config.Save(); }
+        }
+
+        public string Exclusions
+        {
+            get => _config.Current.Exclusions;
+            set { _config.Current.Exclusions = value ?? ""; _config.Save(); }
         }
 
         public bool WidgetTopmost

@@ -77,7 +77,7 @@ namespace SMENA.Services
 
         public void Save()
         {
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(Current, JsonOpts));
+            Atomic.Write(FilePath, JsonSerializer.Serialize(Current, JsonOpts));
         }
     }
 
@@ -122,7 +122,7 @@ namespace SMENA.Services
         public void Save()
         {
             var s = new Storage { Projects = Projects, Tasks = Tasks };
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(s, JsonOpts));
+            Atomic.Write(FilePath, JsonSerializer.Serialize(s, JsonOpts));
         }
 
         public string? ProjectName(Guid? projectId) =>
@@ -172,7 +172,7 @@ namespace SMENA.Services
 
         public void Save()
         {
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(Blocks, JsonOpts));
+            Atomic.Write(FilePath, JsonSerializer.Serialize(Blocks, JsonOpts));
         }
     }
 }
