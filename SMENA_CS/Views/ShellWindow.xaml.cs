@@ -26,6 +26,7 @@ namespace SMENA.Views
                 ["Timeline"] = new TimelinePage(vm),
                 ["Sessions"] = new SessionsPage(vm),
                 ["Reports"] = new ReportsPage(vm),
+                ["Journal"] = new JournalPage(vm),
                 ["Applications"] = new ApplicationsPage(vm),
                 ["Settings"] = new SettingsPage(vm),
             };
@@ -177,6 +178,7 @@ namespace SMENA.Views
             "Settings" => "General / Tracking",
             "Applications" => "Applications",
             "Reports" => "Reports",
+            "Journal" => "Journal — closed tasks",
             _ => key,
         };
 
@@ -308,8 +310,8 @@ namespace SMENA.Views
                 AddItem("Phase…", QMenuPhase_Click);
                 AddColorMenu(menu, row);
                 AddItem("Merge into…", QMenuMerge_Click);
-                AddItem(row.Archived ? "Unarchive" : "Archive", QMenuArchive_Click);
-                AddItem(row.Archived ? "Unarchive project" : "Archive project", QMenuArchiveProject_Click);
+                AddItem(row.Archived ? "Reopen" : "Close task", QMenuArchive_Click);
+                AddItem(row.Archived ? "Reopen project" : "Close project", QMenuArchiveProject_Click);
                 AddItem("Delete", QMenuDelete_Click);
             }
         }
@@ -408,6 +410,11 @@ namespace SMENA.Views
                         "SMENA", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                     _vm.DeleteTaskNow(did);
             }
+        }
+
+        private void CloseTaskQuick_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is TaskTimerRow { TaskId: Guid id }) _vm.CloseTask(id);
         }
 
         private void ManualEntry_Click(object sender, RoutedEventArgs e)

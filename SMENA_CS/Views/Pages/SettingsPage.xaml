@@ -161,6 +161,31 @@
             </StackPanel>
         </Border>
 
+        <TextBlock Text="DATA" Style="{StaticResource Hdr}" Margin="4,18,0,8"/>
+        <Border Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                CornerRadius="8" Padding="16,12">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button Click="BackupNow_Click" Content="BACKUP NOW" FontSize="10" Padding="8,4"/>
+                    <Button Click="RestoreBackup_Click" Content="RESTORE FROM BACKUP…" FontSize="10" Padding="8,4" Margin="8,0,0,0"/>
+                </StackPanel>
+                <TextBlock Text="A backup packs settings + tasks + blocks into one zip. Restore replaces all three; a safety copy of the current data is kept in data\backups first."
+                           FontSize="10" Foreground="{DynamicResource FgDim}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Keep closed blocks:" FontSize="12" Foreground="{DynamicResource Fg}" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Column="1" Style="{StaticResource DarkCombo}" ItemsSource="{Binding CleanupOptions}"
+                              SelectedIndex="{Binding CleanupMonthsIndex, Mode=TwoWay}"
+                              MinWidth="170" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    <Button Grid.Column="2" Click="CleanupNow_Click" Content="CLEAN UP NOW" FontSize="10" Padding="8,4"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
         <TextBlock Text="APPEARANCE" Style="{StaticResource Hdr}" Margin="4,18,0,8"/>
         <Border Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
                 CornerRadius="8" Padding="16,12">

@@ -19,6 +19,29 @@ namespace SMENA.ViewModels
 
         public ObservableCollection<TreeRow> TreeRows { get; } = new();
         public ObservableCollection<TreeRow> PhaseRows { get; } = new();
+        public ObservableCollection<CalendarDayVM> CalendarDays { get; } = new();
+
+        private DateTime _calMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        private string _calendarTitle = "";
+        public string CalendarTitle { get => _calendarTitle; private set { _calendarTitle = value; OnPropertyChanged(nameof(CalendarTitle)); } }
+        private string _calendarSummary = "";
+        public string CalendarSummary { get => _calendarSummary; private set { _calendarSummary = value; OnPropertyChanged(nameof(CalendarSummary)); } }
+
+        public void CalendarPrev() { _calMonth = _calMonth.AddMonths(-1); RebuildCalendar(); }
+        public void CalendarNext() { _calMonth = _calMonth.AddMonths(1); RebuildCalendar(); }
+
+        /// <summary>Heatmap day click → the range picker shows exactly that day.</summary>
+        public void CalendarDayClick(DateTime date)
+        {
+            _customFrom = date.ToString("dd.MM.yyyy");
+            _customTo = date.ToString("dd.MM.yyyy");
+            OnPropertyChanged(nameof(CustomFrom));
+            OnPropertyChanged(nameof(CustomTo));
+            _range = "Custom";
+            OnPropertyChanged(nameof(Range));
+            OnPropertyChanged(nameof(IsCustom));
+            Rebuild();
+        }
 
         private string _range = "Today";
         public string Range
@@ -98,7 +121,7 @@ namespace SMENA.ViewModels
             {
                 TreeRows.Add(new TreeRow
                 {
-                    Name = node.Name + (node.IsArchived ? "  (archived)" : ""),
+                    Name = node.Name + (node.IsArchived ? "  (closed)" : ""),
                     MinutesText = FormatSpan(TimeSpan.FromMinutes(node.Minutes)),
                     Percent = total < 1 ? 0 : Math.Min(100, node.Minutes / total * 100.0),
                     Bar = ProjectBrush(node),
@@ -130,6 +153,46 @@ namespace SMENA.ViewModels
                 });
             }
             HasPhases = PhaseRows.Count > 0;
+            RebuildCalendar();
+        }
+
+        private void RebuildCalendar()
+        {
+            var m = Calendar.Build(_calMonth.Year, _calMonth.Month, _log.Blocks);
+            var max = Math.Max(1, m.Days.Where(d => d.InMonth).Max(d => d.Minutes));
+            var today = DateTime.Today;
+            CalendarDays.Clear();
+            foreach (var d in m.Days)
+            {
+                CalendarDays.Add(new CalendarDayVM
+                {
+                    Date = d.Date,
+                    Minutes = d.Minutes,
+                    MinutesText = FormatSpan(TimeSpan.FromMinutes(d.Minutes)),
+                    Cell = HeatBrush(d.Minutes, max),
+                    InMonth = d.InMonth,
+                    IsToday = d.Date == today,
+                });
+            }
+            CalendarTitle = _calMonth.ToString("MMMM yyyy");
+            var avg = m.ActiveDays > 0 ? m.TotalMinutes / m.ActiveDays : 0;
+            CalendarSummary = $"{FormatSpan(TimeSpan.FromMinutes(m.TotalMinutes))} · {m.ActiveDays} active days · avg {FormatSpan(TimeSpan.FromMinutes(avg))}" +
+                              (m.BestDayDate != null ? $" · best {FormatSpan(TimeSpan.FromMinutes(m.BestDayMinutes))} on {m.BestDayDate:dd.MM}" : "");
+        }
+
+        /// <summary>Accent color with alpha scaled by sqrt(intensity) — low days stay visible; zero = track.</summary>
+        private static System.Windows.Media.Brush HeatBrush(int minutes, int maxMinutes)
+        {
+            System.Windows.Media.Color accent =
+                (ThemeApplier.OptBrush("Accent") as System.Windows.Media.SolidColorBrush)?.Color
+                ?? System.Windows.Media.Color.FromRgb(0x30, 0xD1, 0x58);
+            var track = ThemeApplier.OptBrush("Track") ?? System.Windows.Media.Brushes.Transparent;
+            if (minutes <= 0) return track;
+            var t = 0.30 + 0.70 * Math.Sqrt(minutes / (double)maxMinutes);
+            var brush = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromArgb((byte)(255 * t), accent.R, accent.G, accent.B));
+            brush.Freeze();
+            return brush;
         }
 
         private static System.Windows.Media.Brush ProjectBrush(AggNode node)

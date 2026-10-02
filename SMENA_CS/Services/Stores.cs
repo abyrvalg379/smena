@@ -162,6 +162,9 @@ namespace SMENA.Services
             // IsOpen blocks are preserved (recovery prompt decides their fate); nothing is lost.
         }
 
+        /// <summary>Re-read blocks.json from disk (after a restore swapped the files).</summary>
+        public void Reload() => Load();
+
         /// <summary>Mark leftover open blocks closed (call after the recovery prompt is answered).</summary>
         public void CloseOpenBlocks()
         {

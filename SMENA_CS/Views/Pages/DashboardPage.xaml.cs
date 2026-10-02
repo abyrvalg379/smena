@@ -41,6 +41,11 @@ namespace SMENA.Views
 
         private void Reports_Click(object sender, RoutedEventArgs e) => _vm.NavigateTo("Reports");
 
+        private void CloseTaskTree_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is TreeRow { CanClose: true, TaskId: Guid id }) _vm.CloseTask(id);
+        }
+
         /// <summary>The "…" button: assign the block that is being tracked right now.</summary>
         private void AssignOpenBlock_Click(object sender, RoutedEventArgs e)
         {

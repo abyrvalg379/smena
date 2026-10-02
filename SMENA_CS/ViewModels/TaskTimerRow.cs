@@ -45,5 +45,8 @@ namespace SMENA.ViewModels
         private void OnPropertyChanged(string n) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
 
         public bool Archived { get; set; }
+
+        /// <summary>False for the Unsorted bucket row — it has no task to close.</summary>
+        public bool IsTask => TaskId != null;
     }
 }

@@ -200,6 +200,12 @@
                             <TextBlock Style="{StaticResource NavIcon}" Text="&#xE8FD;"/><TextBlock Text="All Projects" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
+                    <Button x:Name="NavJournal" Style="{StaticResource NavBtn}" Click="Nav_Click" HorizontalContentAlignment="Left"
+                            ToolTip="Closed tasks — reopen or delete">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource NavIcon}" Text="&#xE81C;"/><TextBlock Text="Journal" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
 
                     <TextBlock Text="REPORTS" Style="{StaticResource SectionHdr}"/>
                     <Button x:Name="NavReports" Style="{StaticResource NavBtn}" Click="Nav_Click" HorizontalContentAlignment="Left">
@@ -349,13 +355,32 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <Ellipse Width="9" Height="9" VerticalAlignment="Center" Fill="{Binding TaskBrush}"/>
                                     <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Margin="8,0,0,0"
                                                TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="2" Text="{Binding TotalText}" FontSize="10"
                                                Foreground="{DynamicResource FgDim}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock Grid.Column="3" Text="›" FontSize="11" Foreground="{DynamicResource FgDim}" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="3" Click="CloseTaskQuick_Click" Content="&#xE73E;"
+                                            FontFamily="Segoe Fluent Icons" FontSize="10" Padding="3,2" Margin="0,0,4,0"
+                                            VerticalAlignment="Center" ToolTip="Close task (moves to Journal)">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                <Setter Property="Visibility" Value="Hidden"/>
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True"/>
+                                                            <Condition Binding="{Binding IsTask}" Value="True"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <TextBlock Grid.Column="4" Text="›" FontSize="11" Foreground="{DynamicResource FgDim}" VerticalAlignment="Center"/>
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>

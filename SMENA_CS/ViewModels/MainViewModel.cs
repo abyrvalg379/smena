@@ -43,6 +43,8 @@ namespace SMENA.ViewModels
         public string Phase { get; set; } = "";
         public bool IsProject { get; set; }
         public bool IsUnsorted { get; set; }
+        public Guid? TaskId { get; set; }
+        public bool CanClose => !IsProject && !IsUnsorted && TaskId != null;
     }
 
     public class AppRow
@@ -84,6 +86,7 @@ namespace SMENA.ViewModels
         public ObservableCollection<WeekGridRow> WeekGrid { get; } = new();
         public ObservableCollection<TreeRow> TodayBars { get; } = new();
         public ReportsViewModel Reports { get; }
+        public JournalViewModel Journal { get; }
         public ObservableCollection<BlockRow> RecentRows { get; } = new();
         public ObservableCollection<AppRow> AppRows { get; } = new();
 
@@ -447,6 +450,7 @@ namespace SMENA.ViewModels
             _refreshTicker.Start();
 
             Reports = new ReportsViewModel(store, log);
+            Journal = new JournalViewModel(store, log);
 
             ReloadProjects();
             RefreshStatus(null);
@@ -547,6 +551,89 @@ namespace SMENA.ViewModels
             }
         }
 
+        // ---- data safety (Settings → DATA) ----
+
+        private string BackupDir => Path.Combine(DataFolder, "backups");
+
+        public void BackupNow()
+        {
+            try
+            {
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    FileName = Backups.SuggestName(DateTime.Now),
+                    Filter = "SMENA backup (zip)|*.zip",
+                    InitialDirectory = Directory.Exists(BackupDir) ? BackupDir : DataFolder,
+                };
+                if (dlg.ShowDialog() != true) return;
+                _log.Save(); _store.Save(); _config.Save();   // current state flushes into the files first
+                Backups.Create(dlg.FileName, DataFolder);
+                StatusText = "Backup saved: " + dlg.FileName;
+            }
+            catch (Exception ex) { StatusText = "Backup failed: " + ex.Message; }
+        }
+
+        public void RestoreFromBackup()
+        {
+            try
+            {
+                var dlg = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = "SMENA backup (zip)|*.zip",
+                    InitialDirectory = Directory.Exists(BackupDir) ? BackupDir : DataFolder,
+                };
+                if (dlg.ShowDialog() != true) return;
+
+                var info = Backups.Inspect(dlg.FileName);
+                var range = info.FirstBlock != null ? $" ({info.FirstBlock:dd.MM.yy} – {info.LastBlock:dd.MM.yy})" : "";
+                var msg = $"Backup from {info.CreatedAt:dd.MM.yyyy HH:mm}:\n\n" +
+                          $"{info.Projects} projects · {info.Tasks} tasks · {info.Blocks} blocks{range}\n\n" +
+                          $"Replace current data? A safety copy of what is on disk now goes to:\n{BackupDir}";
+                if (System.Windows.MessageBox.Show(msg, "SMENA — restore", System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Warning) != System.Windows.MessageBoxResult.Yes) return;
+
+                _poller.Shutdown();   // live block + manual timer close cleanly before the files swap
+                _log.Save(); _store.Save(); _config.Save();
+                Directory.CreateDirectory(BackupDir);
+                var safety = Path.Combine(BackupDir, $"SMENA_pre_restore_{DateTime.Now:yyyyMMdd_HHmm}.zip");
+                Backups.Create(safety, DataFolder);
+                Backups.Restore(dlg.FileName, DataFolder);
+
+                _config.Load(); _store.Load(); _log.Reload();
+                ThemeApplier.Apply(_config.Current.Theme);
+                RefreshAll();
+                RefreshStatus(null);
+                StatusText = $"Restored: {info.Blocks} blocks (safety: {Path.GetFileName(safety)})";
+            }
+            catch (Exception ex) { StatusText = "Restore failed: " + ex.Message; }
+        }
+
+        public void CleanupNow()
+        {
+            var months = _config.Current.CleanupMonths;
+            if (months <= 0) { StatusText = "Cleanup is off — pick a retention first"; return; }
+            try
+            {
+                var cutoff = DateTime.Now.AddMonths(-months);
+                var victims = Backups.CountOlder(_log.Blocks, cutoff);
+                if (victims == 0) { StatusText = $"Nothing older than {cutoff:dd.MM.yyyy}"; return; }
+                var msg = $"Delete {victims} closed blocks older than {cutoff:dd.MM.yyyy}?\n\n" +
+                          "The live block is not touched. A safety copy goes to backups first.";
+                if (System.Windows.MessageBox.Show(msg, "SMENA — cleanup", System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Warning) != System.Windows.MessageBoxResult.Yes) return;
+
+                _log.Save(); _store.Save(); _config.Save();
+                Directory.CreateDirectory(BackupDir);
+                var safety = Path.Combine(BackupDir, $"SMENA_pre_cleanup_{DateTime.Now:yyyyMMdd_HHmm}.zip");
+                Backups.Create(safety, DataFolder);
+                _log.Blocks.RemoveAll(b => !b.IsOpen && b.End < cutoff);
+                _log.Save();
+                RefreshAll();
+                StatusText = $"Deleted {victims} blocks (safety: {Path.GetFileName(safety)})";
+            }
+            catch (Exception ex) { StatusText = "Cleanup failed: " + ex.Message; }
+        }
+
         private void OnIdleReturned(TimeSpan gap, DateTime from, Guid? taskId)
         {
             var name = taskId == null ? "Unsorted" : (_store.Tasks.FirstOrDefault(t => t.Id == taskId)?.Name ?? "Unsorted");
@@ -641,6 +728,7 @@ namespace SMENA.ViewModels
                 return;
             }
             if (s != null && s.State == TrackState.Offline) { StatusText = "○ OFFLINE — system was asleep"; return; }
+            if (s != null && s.State == TrackState.Locked) { StatusText = "○ LOCKED"; return; }
             if (s == null || s.State == TrackState.Idle) { StatusText = "○ IDLE"; return; }
             var task = string.IsNullOrEmpty(s.TaskName) ? "unsorted" : s.TaskName;
             StatusText = $"● {s.Process} → {task}";
@@ -656,6 +744,7 @@ namespace SMENA.ViewModels
             RebuildTimerRows();
             RebuildWeek();
             Reports.Rebuild();
+            Journal.Rebuild();
             DataChanged?.Invoke();
         }
 
@@ -693,7 +782,9 @@ namespace SMENA.ViewModels
                 HeroTime = FormatClock(now - _activeSessionStart.Value);
                 var s = _lastStatus;
                 var task = s == null || string.IsNullOrEmpty(s.TaskName) ? "unsorted" : s.TaskName;
-                StatusLine = s == null || s.State == TrackState.Idle ? "idle" : $"{s.Process} — {task}";
+                StatusLine = s == null || s.State == TrackState.Idle || s.State == TrackState.Locked
+                    ? (s != null && s.State == TrackState.Locked ? "locked" : "idle")
+                    : $"{s.Process} — {task}";
             }
             else
             {
@@ -801,19 +892,20 @@ namespace SMENA.ViewModels
             StatTotal = FormatSpan(TimeSpan.FromMinutes(totalMin));
 
             TodayBars.Clear();
-            var tree = Aggregation.BuildTree(blocks, _store.Projects, _store.Tasks, includeArchived: false);
+            var tree = Aggregation.BuildTree(blocks, _store.Projects, _store.Tasks, includeArchived: true);   // freshly closed tasks keep their today time visible
             var treeTotal = tree.Sum(n => n.Minutes);
             foreach (var node in tree)
             {
                 TodayBars.Add(new TreeRow
                 {
-                    Name = node.Name + (node.IsArchived ? "  (archived)" : ""),
+                    Name = node.Name + (node.IsArchived ? "  (closed)" : ""),
                     MinutesText = FormatSpan(TimeSpan.FromMinutes(node.Minutes)),
                     Percent = treeTotal < 1 ? 0 : Math.Min(100, node.Minutes / treeTotal * 100.0),
                     Bar = ProjectBrush(node),
                     Phase = node.Phase,
                     IsProject = node.IsProject,
                     IsUnsorted = node.IsUnsorted,
+                    TaskId = node.TaskId,
                 });
             }
 
@@ -1184,6 +1276,12 @@ namespace SMENA.ViewModels
         public bool IsProjectArchived(Guid projectId) =>
             _store.Projects.FirstOrDefault(p => p.Id == projectId)?.ArchivedAt != null;
 
+        /// <summary>Close a finished task: it leaves live views and the matcher, lands in the journal.</summary>
+        public void CloseTask(Guid id) => SetTaskArchived(id, true);
+
+        /// <summary>Return a journal task to the active set.</summary>
+        public void ReopenTask(Guid id) => SetTaskArchived(id, false);
+
         public void SetTaskArchived(Guid id, bool archived)
         {
             var t = GetTask(id);
@@ -1191,7 +1289,7 @@ namespace SMENA.ViewModels
             t.ArchivedAt = archived ? DateTime.Now : null;
             _store.Save();
             RefreshAll();
-            StatusText = archived ? $"Task archived: {t.Name}" : $"Task unarchived: {t.Name}";
+            StatusText = archived ? $"Task closed → journal: {t.Name}" : $"Task reopened: {t.Name}";
         }
 
         public void SetProjectArchived(Guid projectId, bool archived)
@@ -1203,7 +1301,7 @@ namespace SMENA.ViewModels
                 t.ArchivedAt = archived ? t.ArchivedAt ?? DateTime.Now : null;
             _store.Save();
             RefreshAll();
-            StatusText = archived ? $"Project archived: {proj.Name}" : $"Project unarchived: {proj.Name}";
+            StatusText = archived ? $"Project closed: {proj.Name}" : $"Project reopened: {proj.Name}";
         }
 
         public void SetTaskPhase(Guid id, string phase)
@@ -1624,6 +1722,16 @@ namespace SMENA.ViewModels
         {
             get => _config.Current.Exclusions;
             set { _config.Current.Exclusions = value ?? ""; _config.Save(); }
+        }
+
+        public string[] CleanupOptions { get; } =
+            { "Keep everything", "Older than 3 months", "Older than 6 months", "Older than 1 year", "Older than 2 years" };
+        private static readonly int[] CleanupMonthsMap = { 0, 3, 6, 12, 24 };
+
+        public int CleanupMonthsIndex
+        {
+            get { var i = Array.IndexOf(CleanupMonthsMap, _config.Current.CleanupMonths); return i < 0 ? 0 : i; }
+            set { _config.Current.CleanupMonths = CleanupMonthsMap[Math.Max(0, value)]; _config.Save(); }
         }
 
         public bool WidgetTopmost

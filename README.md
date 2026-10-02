@@ -29,16 +29,24 @@ screenshots. Data lives in `%APPDATA%\SMENA\` as plain JSON.
   in **Unsorted**, nothing is lost.
 - **Idle detection** — after N minutes without input the block is closed at the
   last real activity. An optional prompt offers to log the gap when you return.
+- **Lock / sleep aware** — locking the workstation or putting the PC to sleep
+  closes the block at that exact moment; the lock screen is never recorded.
 - **Assignment tools** — click a block to assign it, merge all Unsorted into one
   task, split sessions, edit blocks after the fact, or reset Unsorted to zero.
 
 ## Features
 
 - **Dashboard**: working-now card with app/file chips, today's stats, per-task
-  gantt, recent sessions, week totals with CSV / JSON / Markdown / HTML export
+  gantt, recent sessions, week totals
 - **Timeline**: day strip + activity log with multi-select, collapse and bulk assign
 - **Sessions**: split, notes per block, edit date/time/task, delete
-- **Reports**: week grid (tasks × days) with per-project grouping
+- **Reports**: project → task tree by range (today … custom), phase rollup,
+  month calendar heatmap (click a day to report it), week grid (tasks × days),
+  CSV / JSON / Markdown / HTML export
+- **Journal**: close a finished task right from the dashboard (✓ on the row) —
+  it leaves live views and keyword matching; reopen it from the journal anytime
+- **Data safety**: one-click backup to a zip, restore with a preview, retention
+  cleanup (3–24 months) — every destructive step keeps a safety copy first
 - **Themes**: SMENA dark plus Blender / Maya / Houdini / Nuke / DaVinci / Unreal /
   Substance looks (Settings → Appearance)
 - **Task colors**: pick an accent color per task — stats, timeline and the widget follow it

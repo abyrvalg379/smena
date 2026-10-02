@@ -7,7 +7,7 @@ using SMENA.Models;
 
 namespace SMENA.Services
 {
-    public enum TrackState { Recording, Idle, Manual, Offline, Paused }
+    public enum TrackState { Recording, Idle, Manual, Offline, Paused, Locked }
 
     public class TrackStatus
     {
@@ -65,6 +65,51 @@ namespace SMENA.Services
         private bool _idleEpisode;
         private DateTime _idleEnded;
         private Guid? _idleTaskId;
+
+        private bool _locked;   // WTS lock: poller ticks must not log the lock screen
+
+        // ---- power / session boundaries (wired from PowerWatch) ----
+        // All four reuse the idle-episode bookkeeping, so the return prompt and the
+        // "first active tick clears the episode" path stay single-sourced.
+
+        /// <summary>System is going to sleep: close the auto block exactly at the suspend moment.</summary>
+        public void OnSuspend() => SeedAway(DateTime.Now);
+
+        /// <summary>Workstation locked: same boundary as sleep; ticks stay silent until unlock.</summary>
+        public void OnLock()
+        {
+            _locked = true;
+            SeedAway(DateTime.Now);
+        }
+
+        /// <summary>Unlock: the return prompt fires from the normal active-tick path.</summary>
+        public void OnUnlock() => _locked = false;
+
+        /// <summary>Wake from sleep: power events already closed the block — re-arm the tick
+        /// anchor so the Offline gap fallback (kept for freezes) doesn't double-fire.</summary>
+        public void OnResume()
+        {
+            if (!ManualMode) _lastTickReal = DateTime.Now;
+        }
+
+        /// <summary>Close the open auto block at an away boundary and arm the episode the
+        /// idle path uses for the return prompt. An armed episode (real idle before
+        /// lock/sleep) is not overwritten — its earlier boundary is the honest one.</summary>
+        private void SeedAway(DateTime at)
+        {
+            if (ManualMode) return;   // manual timer is the user's own clock — not touched
+            if (!_idleEpisode)
+            {
+                _idleEpisode = true;
+                _idleEnded = at;
+                _idleTaskId = _open?.TaskId;
+            }
+            if (_open != null)
+            {
+                CloseOpen(at);
+                _log.Save();
+            }
+        }
 
         public Poller(TimeLog log, Matcher matcher, ConfigManager config, TaskStore store)
         {
@@ -136,6 +181,14 @@ namespace SMENA.Services
                 return;
             }
             _lastTickReal = now;
+
+            // locked session: nothing is logged (the lock screen is not work); the armed
+            // away episode fires its prompt from the first active tick after unlock
+            if (_locked)
+            {
+                Emit(TrackState.Locked);
+                return;
+            }
 
             if (_config.Current.IdleDetection)
             {

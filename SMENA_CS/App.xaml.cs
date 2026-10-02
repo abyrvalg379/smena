@@ -17,6 +17,7 @@ namespace SMENA
 
         private Poller? _poller;
         private TrayService? _tray;
+        private PowerWatch? _power;
         private ShellWindow? _shell;
         private WidgetWindow? _widget;
         private static bool _fatalShown;
@@ -128,6 +129,13 @@ namespace SMENA
             var matcher = new Matcher(() => store.ActiveTasks());   // archived tasks stop capturing
             _poller = new Poller(log, matcher, config, store);
 
+            // sleep/lock boundaries: close blocks at the event moment, not the next tick
+            _power = new PowerWatch();
+            _power.Suspended += () => _poller.OnSuspend();
+            _power.Resumed += () => _poller.OnResume();
+            _power.Locked += () => _poller.OnLock();
+            _power.Unlocked += () => _poller.OnUnlock();
+
             var vm = new MainViewModel(store, log, config, _poller);
             var widget = _widget = new WidgetWindow(vm);
             var shell = _shell = new ShellWindow(vm);
@@ -221,6 +229,7 @@ namespace SMENA
             if (app is App a)
             {
                 a._poller?.Shutdown();
+                a._power?.Dispose();
                 a._tray?.Dispose();
             }
             app.Shutdown();

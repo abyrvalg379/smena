@@ -100,5 +100,8 @@ namespace SMENA.Models
         // Privacy: newline-separated substrings; a window whose title or process name
         // contains any line is not tracked at all (banking, passwords, personal stuff).
         public string Exclusions { get; set; } = "";
+
+        // Retention for CLEAN UP NOW: delete closed blocks older than N months (0 = keep all).
+        public int CleanupMonths { get; set; } = 0;
     }
 }

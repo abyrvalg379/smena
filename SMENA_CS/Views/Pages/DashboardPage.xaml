@@ -221,6 +221,7 @@
                                             <ColumnDefinition Width="14"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="90"/>
                                         </Grid.ColumnDefinitions>
                                         <Ellipse Width="9" Height="9" VerticalAlignment="Center" Fill="{Binding Bar}"/>
@@ -257,6 +258,25 @@
                                         </StackPanel>
                                         <TextBlock Grid.Column="2" Text="{Binding MinutesText}" FontSize="11" Foreground="{DynamicResource Fg}"
                                                    VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <Button Grid.Column="3" Click="CloseTaskTree_Click" Content="&#xE73E;"
+                                                FontFamily="Segoe Fluent Icons" FontSize="10" Padding="3,2" Margin="0,0,6,0"
+                                                VerticalAlignment="Center" ToolTip="Close task (moves to Journal)"
+                                                IsEnabled="{Binding CanClose}">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                    <Setter Property="Visibility" Value="Hidden"/>
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True"/>
+                                                                <Condition Binding="{Binding CanClose}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
                                         <Border Grid.Column="3" Height="7" Background="{DynamicResource Track}" CornerRadius="4" VerticalAlignment="Center">
                                             <Rectangle HorizontalAlignment="Left" Fill="{Binding Bar}" RadiusX="4" RadiusY="4"
                                                        Width="{Binding Percent, FallbackValue=0}" MaxWidth="86"/>

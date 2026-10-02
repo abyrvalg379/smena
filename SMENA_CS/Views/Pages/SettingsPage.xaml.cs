@@ -22,5 +22,8 @@ namespace SMENA.Views
         private void StartMenuShortcut_Click(object sender, RoutedEventArgs e) => _vm.CreateShortcut(desktop: false);
         private void OpenFolder_Click(object sender, RoutedEventArgs e) =>
             Process.Start("explorer.exe", _vm.DataFolder);
+        private void BackupNow_Click(object sender, RoutedEventArgs e) => _vm.BackupNow();
+        private void RestoreBackup_Click(object sender, RoutedEventArgs e) => _vm.RestoreFromBackup();
+        private void CleanupNow_Click(object sender, RoutedEventArgs e) => _vm.CleanupNow();
     }
 }
