@@ -48,6 +48,13 @@ namespace SMENA.Views
             foreach (var child in ((StackPanel)NavDashboard.Parent).Children)
                 if (child is Button b)
                     b.Tag = b.Name == "Nav" + key ? "Active" : null;
+            PageTitle.Text = key switch
+            {
+                "Settings" => "General / Tracking",
+                "Applications" => "Applications",
+                "Reports" => "Reports",
+                _ => key,
+            };
             ShowPage(key);
         }
 

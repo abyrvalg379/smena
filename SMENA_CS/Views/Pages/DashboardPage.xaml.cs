@@ -26,6 +26,8 @@ namespace SMENA.Views
             DataContext = vm;
             _vm.DataChanged += RenderGantt;
             GanttCanvas.SizeChanged += (_, _) => RenderGantt();
+            GanttCanvas.MouseMove += GanttCanvas_MouseMove;
+            GanttCanvas.MouseLeftButtonUp += GanttCanvas_MouseUp;
             Loaded += (_, _) => RenderGantt();
         }
 
@@ -76,6 +78,16 @@ namespace SMENA.Views
         }
 
         // ===== per-project gantt: project sections, task rows, idle row =====
+
+        // ---- drag / resize state (same interaction as the Timeline day strip) ----
+        private ActivityBlock? _dragBlock;
+        private DateTime _dragOrigStart, _dragOrigEnd;
+        private DateTime _pendingStart, _pendingEnd;
+        private int _dragMode;
+        private double _pressX;
+        private bool _dragging;
+        private const double EdgePx = 7;
+        private const double MinMinutes = 1;
 
         private sealed class GanttRow
         {
@@ -179,8 +191,9 @@ namespace SMENA.Views
 
                     foreach (var b in r.Blocks)
                     {
-                        double x = Math.Max(0, (b.Start - start).TotalMinutes / spanMin * w);
-                        double xEnd = Math.Min(w, (b.End - start).TotalMinutes / spanMin * w);
+                        var (bStart, bEnd) = _dragBlock == b ? (_pendingStart, _pendingEnd) : (b.Start, b.End);
+                        double x = Math.Max(0, (bStart - start).TotalMinutes / spanMin * w);
+                        double xEnd = Math.Min(w, (bEnd - start).TotalMinutes / spanMin * w);
                         double bw = Math.Max(2.0, xEnd - x);
                         var brush = r.Dim && b.Process == "idle" ? ThemeBrush("IdleBrush", "#4A4A52") : r.Brush;
                         var rect = new Rectangle
@@ -192,10 +205,16 @@ namespace SMENA.Views
                             Fill = brush,
                             Cursor = Cursors.Hand,
                             Tag = b,
-                            ToolTip = $"{b.Start:HH:mm}–{b.End:HH:mm} · {_vm.TaskNameFor(b.TaskId)} · {b.Process}"
+                            ToolTip = _dragBlock == b
+                                ? $"{_pendingStart:HH:mm}–{_pendingEnd:HH:mm} — release to apply"
+                                : $"{b.Start:HH:mm}–{b.End:HH:mm} · {_vm.TaskNameFor(b.TaskId)} · {b.Process}"
                         };
                         if (b.Process != "idle")
-                            rect.MouseLeftButtonDown += GanttSegment_Click;
+                        {
+                            rect.Tag = b;
+                            rect.PreviewMouseLeftButtonDown += GanttSegment_Press;
+                            rect.MouseMove += GanttSegment_Hover;
+                        }
                         Canvas.SetLeft(rect, x);
                         Canvas.SetTop(rect, top);
                         canvas.Children.Add(rect);
@@ -231,17 +250,96 @@ namespace SMENA.Views
         private static Brush ProjectBrushOf(AggNode node) =>
             Palette.Frozen(string.IsNullOrEmpty(node.ColorHex) ? "#5AC8FA" : node.ColorHex);
 
-        private void GanttSegment_Click(object sender, MouseButtonEventArgs e)
+        private void GanttSegment_Press(object sender, MouseButtonEventArgs e)
         {
-            if ((sender as FrameworkElement)?.Tag is not ActivityBlock b) return;
-            var row = _vm.FindRowForBlock(b) ?? new BlockRow
+            if ((sender as FrameworkElement)?.Tag is not ActivityBlock b || b.IsOpen) return;
+            var rect = (Rectangle)sender;
+            double x = e.GetPosition(rect).X;
+            _dragMode = x <= EdgePx ? 1 : x >= rect.Width - EdgePx ? 2 : 0;
+            _dragBlock = b;
+            _dragOrigStart = b.Start;
+            _dragOrigEnd = b.End;
+            _pendingStart = b.Start;
+            _pendingEnd = b.End;
+            _pressX = e.GetPosition(GanttCanvas).X;
+            _dragging = false;
+            GanttCanvas.CaptureMouse();
+            e.Handled = true;
+        }
+
+        private void GanttSegment_Hover(object sender, MouseEventArgs e)
+        {
+            if (_dragBlock != null || (sender as FrameworkElement)?.Tag is not ActivityBlock b || b.IsOpen) return;
+            var rect = (Rectangle)sender;
+            double x = e.GetPosition(rect).X;
+            rect.Cursor = x <= EdgePx || x >= rect.Width - EdgePx ? Cursors.SizeWE : Cursors.Hand;
+        }
+
+        private void GanttCanvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (_dragBlock == null || !GanttCanvas.IsMouseCaptured) return;
+            double x = e.GetPosition(GanttCanvas).X;
+            if (!_dragging && Math.Abs(x - _pressX) < 4) return;
+            _dragging = true;
+
+            double w = GanttCanvas.ActualWidth;
+            var blocks = _vm.TodayBlocksForTimeline().Where(b => b.End > b.Start).OrderBy(b => b.Start).ToList();
+            var (start, end) = Timeline.Window(blocks, DateTime.Now);
+            double minutesPerPx = spanMinOf(start, end) / w;
+
+            if (_dragMode == 0)
             {
-                Blocks = new List<ActivityBlock> { b },
-                TimeRange = $"{b.Start:HH:mm}–{b.End:HH:mm}",
-                App = b.Process,
-                Title = b.Title ?? ""
+                var delta = TimeSpan.FromMinutes((x - _pressX) * minutesPerPx);
+                _pendingStart = _dragOrigStart + delta;
+                _pendingEnd = _dragOrigEnd + delta;
+            }
+            else
+            {
+                var boundary = start + TimeSpan.FromMinutes(Math.Max(0, x) * minutesPerPx);
+                if (_dragMode == 1)
+                {
+                    _pendingEnd = _dragOrigEnd;
+                    _pendingStart = Min(boundary, _pendingEnd.AddMinutes(-MinMinutes));
+                }
+                else
+                {
+                    _pendingStart = _dragOrigStart;
+                    _pendingEnd = Max(boundary, _pendingStart.AddMinutes(MinMinutes));
+                }
+            }
+            RenderGantt();
+        }
+
+        private void GanttCanvas_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_dragBlock == null) return;
+            var block = _dragBlock;
+            GanttCanvas.ReleaseMouseCapture();
+
+            if (_dragging)
+            {
+                block.Start = _pendingStart;
+                block.End = _pendingEnd;
+                _dragBlock = null;
+                _dragging = false;
+                _vm.SaveBlocks();
+                _vm.StatusText = $"Block moved: {block.Start:HH:mm}–{block.End:HH:mm}";
+                return;
+            }
+
+            _dragBlock = null;
+            var row = _vm.FindRowForBlock(block) ?? new BlockRow
+            {
+                Blocks = new List<ActivityBlock> { block },
+                TimeRange = $"{block.Start:HH:mm}–{block.End:HH:mm}",
+                App = block.Process,
+                Title = block.Title ?? ""
             };
             _vm.BeginAssign(row);
         }
+
+        private static double spanMinOf(DateTime start, DateTime end) => (end - start).TotalMinutes;
+        private static DateTime Min(DateTime a, DateTime b) => a < b ? a : b;
+        private static DateTime Max(DateTime a, DateTime b) => a > b ? a : b;
     }
 }
