@@ -104,4 +104,20 @@ namespace SMENA.Models
         // Retention for CLEAN UP NOW: delete closed blocks older than N months (0 = keep all).
         public int CleanupMonths { get; set; } = 0;
     }
+
+    // Auto-assignment rule (RULES, settings page): regex on the window process and/or
+    // title assigns the block to a task. Applied only when the keyword matcher missed.
+    // Empty regex = any process/title; both non-empty = both must match.
+    public class Rule
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public bool Enabled { get; set; } = true;
+
+        // Free-form label; UI falls back to the target task name.
+        public string Name { get; set; } = "";
+
+        public string ProcessRegex { get; set; } = "";
+        public string TitleRegex { get; set; } = "";
+        public Guid TaskId { get; set; }
+    }
 }

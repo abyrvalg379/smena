@@ -102,7 +102,9 @@
         </Style>
     </UserControl.Resources>
 
-    <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+    <!-- PageHost is a bare ContentControl (no shell-level scroller) — the page scrolls itself -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel MaxWidth="680" HorizontalAlignment="Left" Margin="0,0,0,16">
         <TextBlock Text="TRACKING" Style="{StaticResource Hdr}" Margin="4,0,0,8"/>
         <Border Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
                 CornerRadius="8" Padding="16,12">
@@ -214,5 +216,51 @@
                            Foreground="{DynamicResource FgDim}" Margin="0,6,0,0"/>
             </StackPanel>
         </Border>
+
+        <TextBlock Text="RULES" Style="{StaticResource Hdr}" Margin="4,18,0,8"/>
+        <Border Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                CornerRadius="8" Padding="16,12">
+            <StackPanel>
+                <TextBlock Text="Auto-bucket windows the keyword matcher missed: a rule is a regex on the process and/or window title, assigned to a task. First matching rule in the list wins; an empty box matches anything."
+                           FontSize="11" Foreground="{DynamicResource FgDim}" TextWrapping="Wrap"/>
+                <ListBox ItemsSource="{Binding RuleRows}" BorderThickness="0" Background="Transparent"
+                         Margin="0,8,0,0" ScrollViewer.VerticalScrollBarVisibility="Auto" MaxHeight="320">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="130"/>
+                                    <ColumnDefinition Width="170"/>
+                                    <ColumnDefinition Width="175"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <CheckBox IsChecked="{Binding Enabled, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBox Grid.Column="1" Text="{Binding ProcessRegex, UpdateSourceTrigger=LostFocus}"
+                                         ToolTip="Process regex (empty = any)" FontSize="11" Margin="0,0,6,0"/>
+                                <TextBox Grid.Column="2" Text="{Binding TitleRegex, UpdateSourceTrigger=LostFocus}"
+                                         ToolTip="Window title regex (empty = any)" FontSize="11" Margin="0,0,6,0"/>
+                                <ComboBox Grid.Column="3" Style="{StaticResource DarkCombo}"
+                                          ItemsSource="{Binding DataContext.RuleTargets, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                          DisplayMemberPath="Label" SelectedValuePath="TaskId"
+                                          SelectedValue="{Binding TaskId, Mode=TwoWay}" MinWidth="170"/>
+                                <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
+                                    <Button Click="RuleUp_Click" Content="↑" FontSize="10" Padding="6,3" Width="28"/>
+                                    <Button Click="RuleDown_Click" Content="↓" FontSize="10" Padding="6,3" Width="28" Margin="3,0,0,0"/>
+                                    <Button Click="RuleDelete_Click" Content="✕" FontSize="10" Padding="6,3" Width="28" Margin="3,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button Click="AddRule_Click" Content="+ ADD RULE" FontSize="10" Padding="8,4"/>
+                    <Button Click="ApplyRulesHistory_Click" Content="APPLY TO HISTORY" FontSize="10" Padding="8,4" Margin="8,0,0,0"/>
+                </StackPanel>
+                <TextBlock Text="Rules run only when keywords missed, so they never re-route existing captures. APPLY TO HISTORY re-buckets old unsorted auto blocks — manual and live blocks stay put."
+                           FontSize="10" Foreground="{DynamicResource FgDim}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+            </StackPanel>
+        </Border>
     </StackPanel>
+    </ScrollViewer>
 </UserControl>

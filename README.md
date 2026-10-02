@@ -27,6 +27,10 @@ screenshots. Data lives in `%APPDATA%\SMENA\` as plain JSON.
 - **Tasks + keywords** — a task lists comma-separated keywords; the window title
   outranks the process name, the longest keyword wins. No match → the block lands
   in **Unsorted**, nothing is lost.
+- **Auto-rules** — anything the keywords missed is caught by rules: a regex on the
+  process and/or window title, assigned to a task. Rules are a safety net under
+  keywords — they only bucket windows the matcher missed, first match in the list
+  wins. APPLY TO HISTORY re-buckets old unsorted blocks in one go (Settings → Rules).
 - **Idle detection** — after N minutes without input the block is closed at the
   last real activity. An optional prompt offers to log the gap when you return.
 - **Lock / sleep aware** — locking the workstation or putting the PC to sleep

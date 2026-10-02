@@ -14,6 +14,7 @@ namespace SMENA.Views
             InitializeComponent();
             _vm = vm;
             DataContext = vm;
+            Loaded += (_, _) => _vm.ReloadRules();
         }
 
         private void PauseToggle_Click(object sender, RoutedEventArgs e) => _vm.TogglePause();
@@ -25,5 +26,14 @@ namespace SMENA.Views
         private void BackupNow_Click(object sender, RoutedEventArgs e) => _vm.BackupNow();
         private void RestoreBackup_Click(object sender, RoutedEventArgs e) => _vm.RestoreFromBackup();
         private void CleanupNow_Click(object sender, RoutedEventArgs e) => _vm.CleanupNow();
+
+        private void AddRule_Click(object sender, RoutedEventArgs e) => _vm.AddRule();
+        private void ApplyRulesHistory_Click(object sender, RoutedEventArgs e) => _vm.ApplyRulesToHistory();
+        private void RuleUp_Click(object sender, RoutedEventArgs e) => _vm.MoveRule(RowOf(sender), -1);
+        private void RuleDown_Click(object sender, RoutedEventArgs e) => _vm.MoveRule(RowOf(sender), +1);
+        private void RuleDelete_Click(object sender, RoutedEventArgs e) => _vm.DeleteRule(RowOf(sender));
+
+        private static RuleRow RowOf(object sender) =>
+            (RuleRow)((FrameworkElement)sender).DataContext;
     }
 }

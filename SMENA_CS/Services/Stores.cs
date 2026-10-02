@@ -88,6 +88,7 @@ namespace SMENA.Services
         {
             public List<Project> Projects { get; set; } = new();
             public List<TrackedTask> Tasks { get; set; } = new();
+            public List<Rule> Rules { get; set; } = new();
         }
 
         private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
@@ -95,6 +96,7 @@ namespace SMENA.Services
         public string FilePath { get; }
         public List<Project> Projects { get; private set; } = new();
         public List<TrackedTask> Tasks { get; private set; } = new();
+        public List<Rule> Rules { get; private set; } = new();
 
         public TaskStore(string dir)
         {
@@ -109,19 +111,20 @@ namespace SMENA.Services
                 if (File.Exists(FilePath))
                 {
                     var s = JsonSerializer.Deserialize<Storage>(File.ReadAllText(FilePath));
-                    if (s != null) { Projects = s.Projects; Tasks = s.Tasks; }
+                    if (s != null) { Projects = s.Projects; Tasks = s.Tasks; Rules = s.Rules; }
                 }
             }
             catch
             {
                 Projects = new List<Project>();
                 Tasks = new List<TrackedTask>();
+                Rules = new List<Rule>();
             }
         }
 
         public void Save()
         {
-            var s = new Storage { Projects = Projects, Tasks = Tasks };
+            var s = new Storage { Projects = Projects, Tasks = Tasks, Rules = Rules };
             Atomic.Write(FilePath, JsonSerializer.Serialize(s, JsonOpts));
         }
 

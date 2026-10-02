@@ -240,7 +240,10 @@ namespace SMENA.Services
                 return;
             }
 
-            var task = _matcher.Match(process, title);
+            // keyword matcher first (user-tuned, title outranks process); rules are a
+            // safety net underneath — they only bucket windows the matcher missed
+            var task = _matcher.Match(process, title)
+                     ?? Rules.Match(_store.Rules, id => _store.ActiveTasks().FirstOrDefault(t => t.Id == id), process, title);
 
             if (_open != null &&
                 _open.Process == process &&

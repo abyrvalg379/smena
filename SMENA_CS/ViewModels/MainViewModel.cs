@@ -600,6 +600,7 @@ namespace SMENA.ViewModels
                 Backups.Restore(dlg.FileName, DataFolder);
 
                 _config.Load(); _store.Load(); _log.Reload();
+                ReloadRules();
                 ThemeApplier.Apply(_config.Current.Theme);
                 RefreshAll();
                 RefreshStatus(null);
@@ -1766,6 +1767,85 @@ namespace SMENA.ViewModels
                 }
                 catch { /* registry optional */ }
             }
+        }
+
+        public bool IdlePrompt
+        {
+            get => _config.Current.IdlePrompt;
+            set { _config.Current.IdlePrompt = value; _config.Save(); }
+        }
+
+        // ---- rules ----
+
+        public ObservableCollection<RuleRow> RuleRows { get; } = new();
+        public IReadOnlyList<RuleTarget> RuleTargets { get; private set; } = Array.Empty<RuleTarget>();
+
+        /// <summary>Sync the rules editor with the store (settings page load, restore).</summary>
+        public void ReloadRules()
+        {
+            RuleRows.Clear();
+            foreach (var r in _store.Rules)
+                RuleRows.Add(new RuleRow(r, this));
+            RuleTargets = _store.ActiveTasks()
+                .Select(t => new RuleTarget(t.Id, $"{_store.ProjectName(t.ProjectId)} — {t.Name}"))
+                .ToList();
+            OnPropertyChanged(nameof(RuleTargets));
+        }
+
+        public string RuleTargetLabel(Guid taskId) =>
+            _store.ActiveTasks().Where(t => t.Id == taskId)
+                .Select(t => $"{_store.ProjectName(t.ProjectId)} — {t.Name}")
+                .FirstOrDefault() ?? "(task gone)";
+
+        public void SaveRules() => _store.Save();
+
+        public void AddRule()
+        {
+            var rule = new Rule { TaskId = RuleTargets.FirstOrDefault()?.TaskId ?? Guid.Empty };
+            _store.Rules.Add(rule);
+            SaveRules();
+            RuleRows.Add(new RuleRow(rule, this));
+        }
+
+        public void DeleteRule(RuleRow row)
+        {
+            _store.Rules.Remove(row.Rule);
+            SaveRules();
+            RuleRows.Remove(row);
+        }
+
+        public void MoveRule(RuleRow row, int delta)
+        {
+            int i = _store.Rules.IndexOf(row.Rule);
+            int j = i + delta;
+            if (i < 0 || j < 0 || j >= _store.Rules.Count) return;
+            _store.Rules.RemoveAt(i);
+            _store.Rules.Insert(j, row.Rule);
+            SaveRules();
+            RuleRows.RemoveAt(i);
+            RuleRows.Insert(j, row);
+        }
+
+        /// <summary>Retro-apply rules to history: re-buckets auto-assigned, still-unsorted closed
+        /// blocks by the current rules. Manual and open blocks are never touched.</summary>
+        public void ApplyRulesToHistory()
+        {
+            try
+            {
+                var victims = _log.Blocks.Count(b => !b.IsOpen && b.Assigned == "auto" && b.TaskId == null);
+                if (victims == 0) { StatusText = "No unsorted auto blocks to re-bucket"; return; }
+                var msg = $"Re-bucket {victims} unsorted auto blocks by the current rules?\n\n" +
+                          "Manual blocks and the live block are not touched.";
+                if (System.Windows.MessageBox.Show(msg, "SMENA — rules", System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Question) != System.Windows.MessageBoxResult.Yes) return;
+
+                var n = Rules.Apply(_log.Blocks, _store.Rules,
+                    id => _store.ActiveTasks().FirstOrDefault(t => t.Id == id));
+                _log.Save();
+                RefreshAll();
+                StatusText = $"Rules re-bucketed {n} blocks";
+            }
+            catch (Exception ex) { StatusText = "Rules failed: " + ex.Message; }
         }
 
         // ---- export ----
