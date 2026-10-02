@@ -320,6 +320,7 @@
                                Margin="14,10,0,0" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
                                 WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button Style="{StaticResource WinBtn}" Click="WidgetOpen_Click" Content="&#xE8A7;" FontFamily="Segoe Fluent Icons" FontSize="9" ToolTip="Open widget"/>
                         <Button Style="{StaticResource WinBtn}" Click="Fullscreen_Click" Content="&#xE740;" FontFamily="Segoe Fluent Icons" FontSize="9" ToolTip="Fullscreen (F11)"/>
                         <Button Style="{StaticResource WinBtn}" Click="Minimize_Click" Content="&#xE921;" FontFamily="Segoe Fluent Icons" FontSize="9"/>
                         <Button Style="{StaticResource WinBtn}" Click="Close_Click" Content="&#xE8BB;" FontFamily="Segoe Fluent Icons" FontSize="9"/>

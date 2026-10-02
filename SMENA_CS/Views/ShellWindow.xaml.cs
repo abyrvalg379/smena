@@ -199,6 +199,8 @@ namespace SMENA.Views
 
         private void Fullscreen_Click(object sender, RoutedEventArgs e) => ToggleFullscreen();
 
+        private void WidgetOpen_Click(object sender, RoutedEventArgs e) => App.ShowWidgetSurface();
+
         private void ToggleFullscreen()
         {
             WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
