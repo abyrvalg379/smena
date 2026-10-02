@@ -58,10 +58,62 @@ namespace SMENA.Views
             if (e.Key == Key.F11) ToggleFullscreen();
         }
 
+        private const int WM_GETMINMAXINFO = 0x0024;
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct MINMAXINFO
+        {
+            public POINT Reserved, MaxSize, MaxPosition, MinTrackSize, MaxTrackSize;
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct POINT { public int X, Y; }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct RECTW { public int Left, Top, Right, Bottom; }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct MONITORINFOW
+        {
+            public int CbSize;
+            public RECTW Monitor, Work;
+            public int Flags;
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOW info);
+
+        // borderless windows maximize over the taskbar; WM_GETMINMAXINFO lets the
+        // maximize bounds follow the WORK AREA of the monitor the window is on
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == WM_GETMINMAXINFO)
+            {
+                var mmi = System.Runtime.InteropServices.Marshal.PtrToStructure<MINMAXINFO>(lParam);
+                var monitor = MonitorFromWindow(hwnd, 2);   // MONITOR_DEFAULTTONEAREST
+                var info = new MONITORINFOW { CbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFOW>() };
+                if (monitor != IntPtr.Zero && GetMonitorInfo(monitor, ref info))
+                {
+                    mmi.MaxPosition.X = info.Work.Left;
+                    mmi.MaxPosition.Y = info.Work.Top;
+                    mmi.MaxSize.X = info.Work.Right - info.Work.Left;
+                    mmi.MaxSize.Y = info.Work.Bottom - info.Work.Top;
+                    System.Runtime.InteropServices.Marshal.StructureToPtr(mmi, lParam, true);
+                    handled = true;
+                }
+            }
+            return IntPtr.Zero;
+        }
+
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
-            Services.Dwm.RoundCorners(((System.Windows.Interop.HwndSource)PresentationSource.FromVisual(this)).Handle);
+            var src = (System.Windows.Interop.HwndSource)PresentationSource.FromVisual(this);
+            Services.Dwm.RoundCorners(src.Handle);
+            src.AddHook(WndProc);
         }
 
         public void ShowShell()
@@ -121,7 +173,7 @@ namespace SMENA.Views
 
         private void ToggleFullscreen()
         {
-            // borderless window: Maximized covers the taskbar = fullscreen
+            // maximized bounds follow the work area (taskbar stays visible) via WM_GETMINMAXINFO
             WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         }
 
