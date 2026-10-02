@@ -1,5 +1,7 @@
 # SMENA
 
+![SMENA — dashboard](docs/img/dashboard.png)
+
 **Passive time tracker for Windows — your time is written down by itself.**
 
 *Documentation in Russian: [README.ru.md](README.ru.md)*
@@ -14,8 +16,8 @@ screenshots. Data lives in `%APPDATA%\UCHET\` as plain JSON.
 
 | | |
 |---|---|
-| *Dashboard* | **Dashboard** — working-now card, today's donut and bars, per-task timeline, projects, week report |
-| *Widget* | **Widget** — always-available mini timer: live clock, task rows with stopwatch, quick add, day strip |
+| | **Dashboard** — working-now card, today's donut and bars, per-task timeline, projects, week report |
+| ![Widget](docs/img/widget.png) | **Widget** — always-available mini timer: live clock, task rows with stopwatch, quick add, day strip. One `Ctrl+Alt+U` away |
 
 ## How it works
 
