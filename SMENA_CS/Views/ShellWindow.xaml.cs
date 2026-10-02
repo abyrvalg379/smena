@@ -40,6 +40,7 @@ namespace SMENA.Views
             };
 
             _vm.NavigateRequested += NavigateToPage;
+            StateChanged += ShellWindow_StateChanged;
             Nav_Click(NavDashboard, new RoutedEventArgs());
         }
 
@@ -58,16 +59,8 @@ namespace SMENA.Views
             if (e.Key == Key.F11) ToggleFullscreen();
         }
 
-        private const int WM_GETMINMAXINFO = 0x0024;
-
-        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-        private struct MINMAXINFO
-        {
-            public POINT Reserved, MaxSize, MaxPosition, MinTrackSize, MaxTrackSize;
-        }
-
-        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-        private struct POINT { public int X, Y; }
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
 
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
         private struct RECTW { public int Left, Top, Right, Bottom; }
@@ -80,32 +73,38 @@ namespace SMENA.Views
             public int Flags;
         }
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
-
         [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
         private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOW info);
 
-        // borderless windows maximize over the taskbar; WM_GETMINMAXINFO lets the
-        // maximize bounds follow the WORK AREA of the monitor the window is on
-        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        private const uint MONITOR_DEFAULTTONEAREST = 2;
+
+        /// <summary>Work area (screen minus taskbar) of the monitor the window is on.</summary>
+        private RECTW WorkAreaOfWindow()
         {
-            if (msg == WM_GETMINMAXINFO)
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            var info = new MONITORINFOW { CbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFOW>() };
+            if (monitor != IntPtr.Zero && GetMonitorInfo(monitor, ref info))
+                return info.Work;
+            return new RECTW
             {
-                var mmi = System.Runtime.InteropServices.Marshal.PtrToStructure<MINMAXINFO>(lParam);
-                var monitor = MonitorFromWindow(hwnd, 2);   // MONITOR_DEFAULTTONEAREST
-                var info = new MONITORINFOW { CbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFOW>() };
-                if (monitor != IntPtr.Zero && GetMonitorInfo(monitor, ref info))
-                {
-                    mmi.MaxPosition.X = info.Work.Left;
-                    mmi.MaxPosition.Y = info.Work.Top;
-                    mmi.MaxSize.X = info.Work.Right - info.Work.Left;
-                    mmi.MaxSize.Y = info.Work.Bottom - info.Work.Top;
-                    System.Runtime.InteropServices.Marshal.StructureToPtr(mmi, lParam, true);
-                    handled = true;
-                }
-            }
-            return IntPtr.Zero;
+                Left = (int)SystemParameters.VirtualScreenLeft,
+                Top = (int)SystemParameters.VirtualScreenTop,
+                Right = (int)(SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth),
+                Bottom = (int)(SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight)
+            };
+        }
+
+        /// <summary>Borderless windows maximize OVER the taskbar; pin the maximized frame
+        /// into the work area of the current monitor instead.</summary>
+        private void ShellWindow_StateChanged(object? sender, EventArgs e)
+        {
+            if (WindowState != WindowState.Maximized) return;
+            var wa = WorkAreaOfWindow();
+            Left = wa.Left;
+            Top = wa.Top;
+            Width = wa.Right - wa.Left;
+            Height = wa.Bottom - wa.Top;
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -113,7 +112,6 @@ namespace SMENA.Views
             base.OnSourceInitialized(e);
             var src = (System.Windows.Interop.HwndSource)PresentationSource.FromVisual(this);
             Services.Dwm.RoundCorners(src.Handle);
-            src.AddHook(WndProc);
         }
 
         public void ShowShell()
