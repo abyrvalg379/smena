@@ -29,7 +29,7 @@ namespace SMENA.Services
             _icon = new NotifyIcon
             {
                 Icon = LoadAppIcon(),
-                Text = "SMENA",
+                Text = App.Isolated ? "SMENA (demo)" : "SMENA",
                 Visible = true,
                 ContextMenuStrip = _menu
             };

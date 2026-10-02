@@ -24,6 +24,9 @@ namespace SMENA
         /// <summary>Active data folder: %APPDATA%\SMENA, or SMENA_DATA_DIR when set (demo/profile isolation).</summary>
         public static string DataDir { get; private set; } = "";
 
+        /// <summary>True for isolated profiles (SMENA_DATA_DIR set): no global hotkeys, no cross-instance activation.</summary>
+        public static bool Isolated { get; private set; }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
@@ -31,6 +34,7 @@ namespace SMENA
             var dataDirOverride = Environment.GetEnvironmentVariable("SMENA_DATA_DIR")
                                   ?? Environment.GetEnvironmentVariable("UCHET_DATA_DIR");   // legacy alias
             bool isolated = !string.IsNullOrWhiteSpace(dataDirOverride);
+            Isolated = isolated;
             if (isolated)
             {
                 DataDir = Path.GetFullPath(dataDirOverride.Trim());
@@ -163,9 +167,12 @@ namespace SMENA
         /// Second instance: bring the first one to front ONLY if its window is already visible.
         /// A window hidden in the tray must stay hidden — forced ShowWindow made the widget
         /// "launch itself" whenever another build was test-launched.
+        /// Isolated (demo) instances never activate anything: raising every visible window
+        /// named SMENA would pop the real instance's UI too.
         /// </summary>
         private static void ActivateExistingInstance()
         {
+            if (Isolated) return;
             try
             {
                 int me = System.Diagnostics.Process.GetCurrentProcess().Id;

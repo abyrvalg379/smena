@@ -37,6 +37,9 @@ namespace SMENA.Views
             var src = (HwndSource)PresentationSource.FromVisual(this);
             _hwnd = src.Handle;
             src.AddHook(WndProc);
+            // isolated (demo) instances never own global hotkeys: two instances registering
+            // Ctrl+Alt+S/P/U means the hotkeys can end up driving the demo instead of the app.
+            if (App.Isolated) return;
             RegisterHotKey(_hwnd, 1, MOD_CONTROL | MOD_ALT, 0x53); // Ctrl+Alt+S
             RegisterHotKey(_hwnd, 2, MOD_CONTROL | MOD_ALT, 0x50); // Ctrl+Alt+P
             RegisterHotKey(_hwnd, 3, MOD_CONTROL | MOD_ALT, 0x55); // Ctrl+Alt+U
