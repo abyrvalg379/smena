@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -58,7 +59,46 @@ namespace SMENA.Views
         {
             base.OnPreviewKeyDown(e);
             if (e.Key == Key.F11) ToggleFullscreen();
+            if (e.Key == Key.K && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            {
+                _vm.SearchOpen = !_vm.SearchOpen;
+                e.Handled = true;
+                return;
+            }
+            if (e.Key == Key.Escape && _vm.SearchOpen)
+            {
+                _vm.SearchOpen = false;
+                e.Handled = true;
+            }
         }
+
+        private void SearchBox_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if ((bool)e.NewValue)
+            {
+                SearchBox.Focus();
+                SearchBox.SelectAll();
+            }
+            else
+            {
+                _vm.SearchText = "";
+            }
+        }
+
+        private void SearchBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                _vm.Jump(SearchList.SelectedItem as SearchHit ?? _vm.SearchHits.FirstOrDefault());
+            }
+        }
+
+        private void SearchList_DoubleClick(object sender, MouseButtonEventArgs e) =>
+            _vm.Jump(SearchList.SelectedItem as SearchHit);
+
+        private void SearchToggle_Click(object sender, RoutedEventArgs e) =>
+            _vm.SearchOpen = !_vm.SearchOpen;
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);

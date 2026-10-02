@@ -320,6 +320,7 @@
                                Margin="14,10,0,0" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
                                 WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button Style="{StaticResource WinBtn}" Click="SearchToggle_Click" Content="&#xE721;" FontFamily="Segoe Fluent Icons" FontSize="9" ToolTip="Search (Ctrl+K)"/>
                         <Button Style="{StaticResource WinBtn}" Click="WidgetOpen_Click" Content="&#xE8A7;" FontFamily="Segoe Fluent Icons" FontSize="9" ToolTip="Open widget"/>
                         <Button Style="{StaticResource WinBtn}" Click="Fullscreen_Click" Content="&#xE740;" FontFamily="Segoe Fluent Icons" FontSize="9" ToolTip="Fullscreen (F11)"/>
                         <Button Style="{StaticResource WinBtn}" Click="Minimize_Click" Content="&#xE921;" FontFamily="Segoe Fluent Icons" FontSize="9"/>
@@ -516,6 +517,42 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
             </Grid>
+        </Border>
+
+        <!-- search overlay (Ctrl+K) -->
+        <Border Grid.ColumnSpan="3" Width="560" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,70,0,0"
+                Background="{DynamicResource PanelHi}" BorderBrush="{DynamicResource Accent}" BorderThickness="1"
+                CornerRadius="10" Padding="12,10"
+                Visibility="{Binding SearchOpen, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+                <TextBox x:Name="SearchBox" FontSize="14"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         IsVisibleChanged="SearchBox_IsVisibleChanged"
+                         KeyDown="SearchBox_KeyDown"/>
+                <ListBox x:Name="SearchList" ItemsSource="{Binding SearchHits}" MaxHeight="380" Margin="0,8,0,0"
+                         BorderThickness="0" Background="Transparent" SelectionMode="Single"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         MouseDoubleClick="SearchList_DoubleClick">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="58"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Kind}" FontSize="9" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource Accent}" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="12"
+                                           Foreground="{DynamicResource Fg}" TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding Title}"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Sub}" FontSize="10"
+                                           Foreground="{DynamicResource FgDim}" Margin="8,0,0,0"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
         </Border>
 
         <!-- mini task editor popup -->

@@ -1848,6 +1848,40 @@ namespace SMENA.ViewModels
             catch (Exception ex) { StatusText = "Rules failed: " + ex.Message; }
         }
 
+        // ---- search (Ctrl+K) ----
+
+        private bool _searchOpen;
+        public bool SearchOpen
+        {
+            get => _searchOpen;
+            set { _searchOpen = value; OnPropertyChanged(nameof(SearchOpen)); }
+        }
+
+        private string _searchText = "";
+        public string SearchText
+        {
+            get => _searchText;
+            set { _searchText = value ?? ""; OnPropertyChanged(nameof(SearchText)); RebuildSearch(); }
+        }
+
+        public System.Collections.ObjectModel.ObservableCollection<SearchHit> SearchHits { get; } = new();
+
+        private void RebuildSearch()
+        {
+            SearchHits.Clear();
+            foreach (var h in SMENA.Services.Search.Query(_log.Blocks, _store.ActiveTasks(), _store.Projects, _searchText))
+                SearchHits.Add(h);
+        }
+
+        /// <summary>Jump to the hit's most recent day (Timeline) and close the overlay.</summary>
+        public void Jump(SearchHit hit)
+        {
+            SearchOpen = false;
+            if (hit == null) return;
+            SelectedDate = hit.Day;
+            NavigateRequested?.Invoke("Timeline");
+        }
+
         // ---- export ----
 
         public bool ExportCsv(DateTime from, DateTime to)

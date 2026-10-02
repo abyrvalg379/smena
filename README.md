@@ -37,6 +37,9 @@ screenshots. Data lives in `%APPDATA%\SMENA\` as plain JSON.
   closes the block at that exact moment; the lock screen is never recorded.
 - **Assignment tools** — click a block to assign it, merge all Unsorted into one
   task, split sessions, edit blocks after the fact, or reset Unsorted to zero.
+- **Instant search** — Ctrl+K (or the magnifier in the header) searches the whole
+  history: tasks, projects, window titles, notes. Space-separated words must all
+  match; Enter jumps to the day of the hit's last activity.
 
 ## Features
 
