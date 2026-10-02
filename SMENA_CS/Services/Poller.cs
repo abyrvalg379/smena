@@ -7,7 +7,7 @@ using SMENA.Models;
 
 namespace SMENA.Services
 {
-    public enum TrackState { Recording, Idle, Manual, Paused }
+    public enum TrackState { Recording, Idle, Manual, Offline, Paused }
 
     public class TrackStatus
     {
@@ -35,6 +35,7 @@ namespace SMENA.Services
         private readonly Dictionary<int, string> _procCache = new();
 
         private ActivityBlock? _open;
+        private DateTime _lastTickReal;
 
         public bool ManualMode { get; private set; }
         public DateTime ManualStart { get; private set; }
@@ -104,7 +105,8 @@ namespace SMENA.Services
                     End = end,
                     Process = "manual",
                     Title = ManualTaskName,
-                    TaskId = ManualTaskId
+                    TaskId = ManualTaskId,
+                    Assigned = "manual"
                 });
             }
             ManualMode = false;
@@ -123,6 +125,18 @@ namespace SMENA.Services
             }
 
             var now = DateTime.Now;
+
+            // system slept or the process was frozen: close the open block at the last
+            // known tick — sleep time must not inflate the block
+            if (_lastTickReal != default && (now - _lastTickReal).TotalMinutes >= 2)
+            {
+                if (_open != null) { CloseOpen(_lastTickReal); _log.Save(); }
+                _lastTickReal = now;
+                Emit(TrackState.Offline);
+                return;
+            }
+            _lastTickReal = now;
+
             if (_config.Current.IdleDetection)
             {
                 var lastInput = Win32.GetLastInputTime();
@@ -180,13 +194,30 @@ namespace SMENA.Services
                 _open.Title == title &&
                 _open.TaskId == task?.Id)
             {
-                _open.End = now;
+                if (_open.Start.Date != now.Date)
+                {
+                    // block ran past midnight: split so every block stays inside one day
+                    var midnight = now.Date;
+                    _open.End = midnight;
+                    _open.IsOpen = false;
+                    _open = new ActivityBlock
+                    {
+                        Start = midnight, End = now, Process = _open.Process,
+                        Title = _open.Title, TaskId = _open.TaskId,
+                        IsOpen = true, Assigned = _open.Assigned, Source = _open.Source,
+                    };
+                    _log.Add(_open);
+                }
+                else
+                {
+                    _open.End = now;
+                }
                 Emit(TrackState.Recording, process, title, task);
                 return;
             }
 
             CloseOpen(now);
-            _open = new ActivityBlock { Start = now, End = now, Process = process, Title = title, TaskId = task?.Id, IsOpen = true };
+            _open = new ActivityBlock { Start = now, End = now, Process = process, Title = title, TaskId = task?.Id, IsOpen = true, Assigned = "auto" };
             _log.Add(_open);
             Emit(TrackState.Recording, process, title, task);
         }
@@ -205,7 +236,8 @@ namespace SMENA.Services
                         End = end,
                         Process = "manual",
                         Title = ManualTaskName,
-                        TaskId = ManualTaskId
+                        TaskId = ManualTaskId,
+                        Assigned = "manual"
                     });
                 }
                 ManualMode = false;

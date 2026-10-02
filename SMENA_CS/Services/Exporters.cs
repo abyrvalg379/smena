@@ -115,5 +115,76 @@ namespace SMENA.Services
 
         private static string EscapeH(string s) =>
             (s ?? "").Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
+        // ---- aggregated tree exports (project → task, with phase) ----
+
+        public static void WriteTreeCsv(string path, IReadOnlyList<(string Project, string Task, string Phase, double Minutes)> rows)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Project,Task,Phase,Minutes,Hours");
+            foreach (var r in rows)
+                sb.Append(Escape(r.Project)).Append(',')
+                  .Append(Escape(r.Task)).Append(',')
+                  .Append(Escape(r.Phase)).Append(',')
+                  .Append(r.Minutes.ToString("0", CultureInfo.InvariantCulture)).Append(',')
+                  .Append((r.Minutes / 60.0).ToString("0.00", CultureInfo.InvariantCulture)).AppendLine();
+            File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
+        }
+
+        public static void WriteTreeJson(string path, IReadOnlyList<(string Project, string Task, string Phase, double Minutes)> rows)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("[");
+            for (int i = 0; i < rows.Count; i++)
+            {
+                var r = rows[i];
+                sb.Append("  { \"project\": \"").Append(Escape(r.Project))
+                  .Append("\", \"task\": \"").Append(Escape(r.Task))
+                  .Append("\", \"phase\": \"").Append(Escape(r.Phase))
+                  .Append("\", \"minutes\": ").Append(r.Minutes.ToString("0", CultureInfo.InvariantCulture))
+                  .Append(" }");
+                if (i < rows.Count - 1) sb.Append(',');
+                sb.AppendLine();
+            }
+            sb.AppendLine("]");
+            File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
+        }
+
+        public static void WriteTreeMd(string path, IReadOnlyList<(string Project, string Task, string Phase, double Minutes)> rows, string range)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("# SMENA report — ").Append(range).AppendLine();
+            sb.AppendLine("| Project | Task | Phase | Minutes | Hours |");
+            sb.AppendLine("|---------|------|-------|--------:|------:|");
+            foreach (var r in rows)
+                sb.Append("| ").Append(r.Project)
+                  .Append(" | ").Append(r.Task)
+                  .Append(" | ").Append(string.IsNullOrEmpty(r.Phase) ? "—" : r.Phase)
+                  .Append(" | ").Append(r.Minutes.ToString("0", CultureInfo.InvariantCulture))
+                  .Append(" | ").Append((r.Minutes / 60.0).ToString("0.00", CultureInfo.InvariantCulture))
+                  .AppendLine(" |");
+            sb.AppendLine().Append("**Total: ").Append(rows.Sum(r => r.Minutes).ToString("0", CultureInfo.InvariantCulture)).Append(" min**");
+            File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
+        }
+
+        public static void WriteTreeHtml(string path, IReadOnlyList<(string Project, string Task, string Phase, double Minutes)> rows, string range)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>SMENA report</title>");
+            sb.AppendLine("<style>body{font-family:Segoe UI,sans-serif;background:#0B0F14;color:#E8EDF3;padding:24px}" +
+                          "table{border-collapse:collapse}td,th{padding:6px 14px;border-bottom:1px solid #263241;text-align:left}" +
+                          "th{color:#8995A5;font-size:12px}h1{font-size:20px}</style></head><body>");
+            sb.Append("<h1>SMENA report — ").Append(System.Web.HttpUtility.HtmlEncode(range)).AppendLine("</h1>");
+            sb.AppendLine("<table><tr><th>Project</th><th>Task</th><th>Phase</th><th>Minutes</th><th>Hours</th></tr>");
+            foreach (var r in rows)
+                sb.Append("<tr><td>").Append(System.Web.HttpUtility.HtmlEncode(r.Project))
+                  .Append("</td><td>").Append(System.Web.HttpUtility.HtmlEncode(r.Task))
+                  .Append("</td><td>").Append(System.Web.HttpUtility.HtmlEncode(r.Phase))
+                  .Append("</td><td>").Append(r.Minutes.ToString("0", CultureInfo.InvariantCulture))
+                  .Append("</td><td>").Append((r.Minutes / 60.0).ToString("0.00", CultureInfo.InvariantCulture))
+                  .AppendLine("</td></tr>");
+            sb.AppendLine("</table></body></html>");
+            File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
+        }
     }
 }

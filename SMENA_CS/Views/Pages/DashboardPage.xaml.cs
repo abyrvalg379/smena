@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -14,6 +15,9 @@ namespace SMENA.Views
     public partial class DashboardPage : UserControl
     {
         private readonly MainViewModel _vm;
+
+        private static Brush ThemeBrush(string key, string fallback) =>
+            ThemeApplier.OptBrush(key) ?? Palette.Frozen(fallback);
 
         public DashboardPage(MainViewModel vm)
         {
@@ -33,9 +37,25 @@ namespace SMENA.Views
             else _vm.TogglePause();
         }
 
-        private void Assign_Click(object sender, RoutedEventArgs e)
+        private void Reports_Click(object sender, RoutedEventArgs e) => _vm.NavigateTo("Reports");
+
+        /// <summary>The "…" button: assign the block that is being tracked right now.</summary>
+        private void AssignOpenBlock_Click(object sender, RoutedEventArgs e)
         {
-            _vm.StatusText = "Assign works from Timeline / Sessions — click a session there.";
+            var open = _vm.TodayBlocksForTimeline().LastOrDefault(b => b.IsOpen);
+            if (open == null)
+            {
+                _vm.StatusText = "Nothing is being tracked right now.";
+                return;
+            }
+            var row = _vm.FindRowForBlock(open) ?? new BlockRow
+            {
+                Blocks = new List<ActivityBlock> { open },
+                TimeRange = $"{open.Start:HH:mm}–{open.End:HH:mm}",
+                App = open.Process,
+                Title = open.Title ?? ""
+            };
+            _vm.BeginAssign(row);
         }
 
         private void CloseDetails_Click(object sender, RoutedEventArgs e) => _vm.SelectedSession = null;
@@ -55,15 +75,16 @@ namespace SMENA.Views
             _vm.DeleteEditingBlocks();
         }
 
-        private void Export_Click(object sender, RoutedEventArgs e)
+        // ===== per-project gantt: project sections, task rows, idle row =====
+
+        private sealed class GanttRow
         {
-            if ((sender as FrameworkElement)?.Tag is string fmt) _vm.ExportReport(fmt);
+            public string Name = "";
+            public Brush Brush = Brushes.Gray;
+            public bool Header;
+            public bool Dim;
+            public List<ActivityBlock> Blocks = new();
         }
-
-        private static Brush ThemeBrush(string key, string fallback) =>
-            ThemeApplier.OptBrush(key) ?? Palette.Frozen(fallback);
-
-        // ===== per-task gantt rows =====
 
         private void RenderGantt()
         {
@@ -78,78 +99,116 @@ namespace SMENA.Views
             var (start, end) = Timeline.Window(blocks, now);
             double w = canvas.ActualWidth;
             double spanMin = (end - start).TotalMinutes;
+            if (spanMin <= 0) return;
 
-            var rows = blocks.GroupBy(b => b.TaskId)
-                .OrderByDescending(g => g.Sum(b => (b.End - b.Start).TotalMinutes))
-                .Select(g =>
+            var tasks = _vm.Store.Tasks;
+            var tree = Aggregation.BuildTree(blocks, _vm.Store.Projects, tasks, includeArchived: false);
+
+            var rows = new List<GanttRow>();
+            foreach (var proj in tree.Where(p => p.IsProject))
+            {
+                rows.Add(new GanttRow { Name = proj.Name, Brush = ProjectBrushOf(proj), Header = true });
+                foreach (var child in proj.Children)
                 {
-                    var t = g.Key == null ? null : _vm.GetTask(g.Key.Value);
-                    return new
+                    rows.Add(new GanttRow
                     {
-                        Name = g.Key == null ? "Other" : _vm.TaskNameFor(g.Key),
-                        Brush = Palette.BrushFor(g.Key, t?.ColorHex),
-                        Blocks = g.ToList()
-                    };
-                }).ToList();
+                        Name = child.Name,
+                        Brush = Palette.Frozen(Palette.HexFor(child.TaskId, child.ColorHex)),
+                        Blocks = blocks.Where(b => b.TaskId == child.TaskId).ToList()
+                    });
+                }
+            }
+            var unsorted = tree.FirstOrDefault(n => n.IsUnsorted);
+            if (unsorted != null)
+                rows.Add(new GanttRow
+                {
+                    Name = "Unsorted",
+                    Brush = ThemeBrush("UnsortedBrush", "#5A5A64"),
+                    Dim = true,
+                    Blocks = blocks.Where(b => b.TaskId == null || tasks.All(t => t.Id != b.TaskId)).ToList()
+                });
 
-            const double rowH = 34;
-            const double labelW = 0; // labels drawn in the left panel
-            double canvasH = Math.Max(150, rows.Count * rowH + 6);
+            // idle: gaps inside the observed window (>= 5 min)
+            var idle = new List<ActivityBlock>();
+            var cursor = blocks.Count > 0 ? blocks[0].Start : start;
+            foreach (var b in blocks)
+            {
+                if ((b.Start - cursor).TotalMinutes >= 5)
+                    idle.Add(new ActivityBlock { Start = cursor, End = b.Start, Process = "idle" });
+                if (b.End > cursor) cursor = b.End;
+            }
+            var idleEnd = end < now ? end : now;
+            if ((idleEnd - cursor).TotalMinutes >= 5)
+                idle.Add(new ActivityBlock { Start = cursor, End = idleEnd, Process = "idle" });
+            if (idle.Count > 0)
+                rows.Add(new GanttRow { Name = "IDLE", Brush = ThemeBrush("IdleBrush", "#4A4A52"), Dim = true, Blocks = idle });
+
+            const double rowH = 28;
+            double canvasH = Math.Max(120, rows.Count * rowH + 6);
             canvas.Height = canvasH;
 
-            // labels panel
+            int rowIdx = 0;
             foreach (var r in rows)
             {
-                var sp = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
-                sp.Children.Add(new Ellipse { Width = 8, Height = 8, Fill = r.Brush, VerticalAlignment = VerticalAlignment.Center });
-                sp.Children.Add(new TextBlock
+                double top = rowIdx * rowH + 4;
+
+                var label = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, top - 2, 0, 0) };
+                if (!r.Header)
+                    label.Children.Add(new Ellipse { Width = 8, Height = 8, Fill = r.Brush, VerticalAlignment = VerticalAlignment.Center });
+                label.Children.Add(new TextBlock
                 {
                     Text = r.Name,
-                    FontSize = 11,
-                    Foreground = ThemeBrush("FgDim", "#8995A5"),
-                    Margin = new Thickness(6, 0, 0, 0)
+                    FontSize = r.Header ? 11.5 : 11,
+                    FontWeight = r.Header ? FontWeights.SemiBold : FontWeights.Normal,
+                    Foreground = r.Header ? ThemeBrush("Fg", "#E8EDF3") : ThemeBrush("FgDim", "#8995A5"),
+                    Margin = new Thickness(r.Header ? 0 : 6, 0, 0, 0)
                 });
-                labels.Children.Add(sp);
-            }
+                Canvas.SetLeft(label, 0);
+                Canvas.SetTop(label, top);
+                labels.Children.Add(label);
 
-            // faint row separators
-            for (int i = 1; i < rows.Count; i++)
-            {
-                var sep = new Rectangle { Height = 1, Fill = ThemeBrush("Border", "#161E29") };
-                Canvas.SetLeft(sep, 0); Canvas.SetTop(sep, i * rowH);
-                sep.Width = w;
-                canvas.Children.Add(sep);
-            }
-
-            // segments
-            foreach (var r in rows)
-            {
-                int rowIdx = rows.IndexOf(r);
-                foreach (var b in r.Blocks)
+                if (!r.Header)
                 {
-                    double x = (b.Start - start).TotalMinutes / spanMin * w;
-                    double bw = Math.Max(2.0, (b.End - b.Start).TotalMinutes / spanMin * w);
-                    var rect = new Rectangle
+                    if (rowIdx > 0)
                     {
-                        Width = bw,
-                        Height = 15,
-                        RadiusX = 3,
-                        RadiusY = 3,
-                        Fill = r.Brush,
-                        Cursor = Cursors.Hand,
-                        ToolTip = $"{b.Start:HH:mm}–{b.End:HH:mm} · {_vm.TaskNameFor(b.TaskId)} · {b.Process}"
-                    };
-                    Canvas.SetLeft(rect, x);
-                    Canvas.SetTop(rect, rowIdx * rowH + 6);
-                    canvas.Children.Add(rect);
+                        var sep = new Rectangle { Height = 1, Fill = ThemeBrush("Border", "#263241"), Opacity = 0.5 };
+                        Canvas.SetLeft(sep, 0); Canvas.SetTop(sep, rowIdx * rowH);
+                        sep.Width = w;
+                        canvas.Children.Add(sep);
+                    }
+
+                    foreach (var b in r.Blocks)
+                    {
+                        double x = Math.Max(0, (b.Start - start).TotalMinutes / spanMin * w);
+                        double xEnd = Math.Min(w, (b.End - start).TotalMinutes / spanMin * w);
+                        double bw = Math.Max(2.0, xEnd - x);
+                        var brush = r.Dim && b.Process == "idle" ? ThemeBrush("IdleBrush", "#4A4A52") : r.Brush;
+                        var rect = new Rectangle
+                        {
+                            Width = bw,
+                            Height = 14,
+                            RadiusX = 3,
+                            RadiusY = 3,
+                            Fill = brush,
+                            Cursor = Cursors.Hand,
+                            Tag = b,
+                            ToolTip = $"{b.Start:HH:mm}–{b.End:HH:mm} · {_vm.TaskNameFor(b.TaskId)} · {b.Process}"
+                        };
+                        if (b.Process != "idle")
+                            rect.MouseLeftButtonDown += GanttSegment_Click;
+                        Canvas.SetLeft(rect, x);
+                        Canvas.SetTop(rect, top);
+                        canvas.Children.Add(rect);
+                    }
                 }
+                rowIdx++;
             }
 
             // now line
             double nx = (now - start).TotalMinutes / spanMin * w;
             if (nx >= 0 && nx <= w)
             {
-                var line = new Rectangle { Width = 1.2, Height = canvasH, Fill = ThemeBrush("Accent", "#9AD7F5") };
+                var line = new Rectangle { Width = 1.2, Height = canvasH, Fill = ThemeBrush("Accent", "#5AC8FA") };
                 Canvas.SetLeft(line, nx);
                 Canvas.SetTop(line, 0);
                 canvas.Children.Add(line);
@@ -167,6 +226,22 @@ namespace SMENA.Views
                 canvas.Children.Add(tb);
                 t = t.AddHours(stepHours);
             }
+        }
+
+        private static Brush ProjectBrushOf(AggNode node) =>
+            Palette.Frozen(string.IsNullOrEmpty(node.ColorHex) ? "#5AC8FA" : node.ColorHex);
+
+        private void GanttSegment_Click(object sender, MouseButtonEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.Tag is not ActivityBlock b) return;
+            var row = _vm.FindRowForBlock(b) ?? new BlockRow
+            {
+                Blocks = new List<ActivityBlock> { b },
+                TimeRange = $"{b.Start:HH:mm}–{b.End:HH:mm}",
+                App = b.Process,
+                Title = b.Title ?? ""
+            };
+            _vm.BeginAssign(row);
         }
     }
 }

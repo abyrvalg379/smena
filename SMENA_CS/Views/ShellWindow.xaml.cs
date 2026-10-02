@@ -39,7 +39,16 @@ namespace SMENA.Views
                 }
             };
 
+            _vm.NavigateRequested += NavigateToPage;
             Nav_Click(NavDashboard, new RoutedEventArgs());
+        }
+
+        private void NavigateToPage(string key)
+        {
+            foreach (var child in ((StackPanel)NavDashboard.Parent).Children)
+                if (child is Button b)
+                    b.Tag = b.Name == "Nav" + key ? "Active" : null;
+            ShowPage(key);
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -152,6 +161,9 @@ namespace SMENA.Views
                 case "KEYWORDS":
                     if (_miniRow?.TaskId is Guid kid) _vm.SetTaskKeywords(kid, MiniBox1.Text);
                     break;
+                case "PHASE":
+                    if (_miniRow?.TaskId is Guid phid) _vm.SetTaskPhase(phid, MiniBox1.Text);
+                    break;
             }
         }
 
@@ -188,8 +200,11 @@ namespace SMENA.Views
             {
                 AddItem("Rename…", QMenuRename_Click);
                 AddItem("Keywords…", QMenuKeywords_Click);
+                AddItem("Phase…", QMenuPhase_Click);
                 AddColorMenu(menu, row);
                 AddItem("Merge into…", QMenuMerge_Click);
+                AddItem(row.Archived ? "Unarchive" : "Archive", QMenuArchive_Click);
+                AddItem(row.Archived ? "Unarchive project" : "Archive project", QMenuArchiveProject_Click);
                 AddItem("Delete", QMenuDelete_Click);
             }
         }
@@ -251,6 +266,32 @@ namespace SMENA.Views
         }
 
         private void QMenuResetUnsorted_Click(object sender, RoutedEventArgs e) => _vm.ResetUnsortedToZero();
+
+        private void QMenuPhase_Click(object sender, RoutedEventArgs e)
+        {
+            var row = RowFromMenu(sender, e);
+            if (row?.TaskId is Guid pid) ShowMini("PHASE", "PHASE — e.g. modeling, texturing, damage", _vm.GetTask(pid)?.Phase ?? "", row);
+        }
+
+        private void QMenuArchive_Click(object sender, RoutedEventArgs e)
+        {
+            var row = RowFromMenu(sender, e);
+            if (row?.TaskId is Guid id)
+            {
+                var t = _vm.GetTask(id);
+                if (t != null) _vm.SetTaskArchived(id, t.ArchivedAt == null);
+            }
+        }
+
+        private void QMenuArchiveProject_Click(object sender, RoutedEventArgs e)
+        {
+            var row = RowFromMenu(sender, e);
+            if (row?.TaskId is Guid tid)
+            {
+                var t = _vm.GetTask(tid);
+                if (t != null) _vm.SetProjectArchived(t.ProjectId, !_vm.IsProjectArchived(t.ProjectId));
+            }
+        }
 
         private void QMenuDelete_Click(object sender, RoutedEventArgs e)
         {

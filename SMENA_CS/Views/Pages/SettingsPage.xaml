@@ -119,6 +119,8 @@
                           IsChecked="{Binding AutoMode, Mode=TwoWay}" Margin="0,12,0,0"/>
                 <CheckBox Content="Idle detection — pause after inactivity" FontSize="12" Foreground="{DynamicResource Fg}"
                           IsChecked="{Binding IdleDetection, Mode=TwoWay}" Margin="0,10,0,0"/>
+                <CheckBox Content="Ask after idle — offer to log the gap when you return" FontSize="12" Foreground="{DynamicResource Fg}"
+                          IsChecked="{Binding IdlePrompt, Mode=TwoWay}" Margin="0,10,0,0"/>
                 <CheckBox Content="Track files (show file chips)" FontSize="12" Foreground="{DynamicResource Fg}"
                           IsChecked="{Binding TrackFiles, Mode=TwoWay}" Margin="0,10,0,0"/>
                 <Button Click="PauseToggle_Click" Content="PAUSE / RESUME TRACKING NOW" Margin="0,14,0,0" HorizontalAlignment="Left"/>

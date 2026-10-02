@@ -43,5 +43,7 @@ namespace SMENA.ViewModels
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged(string n) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+
+        public bool Archived { get; set; }
     }
 }

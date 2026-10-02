@@ -125,7 +125,7 @@ namespace SMENA
                 b.IsOpen = false;
             }
 
-            var matcher = new Matcher(() => store.Tasks);
+            var matcher = new Matcher(() => store.ActiveTasks());   // archived tasks stop capturing
             _poller = new Poller(log, matcher, config, store);
 
             var vm = new MainViewModel(store, log, config, _poller);

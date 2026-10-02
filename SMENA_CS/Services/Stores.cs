@@ -127,6 +127,11 @@ namespace SMENA.Services
 
         public string? ProjectName(Guid? projectId) =>
             Projects.FirstOrDefault(p => p.Id == projectId)?.Name;
+
+        /// <summary>Tasks eligible for live capture: neither they nor their project are archived.</summary>
+        public IEnumerable<TrackedTask> ActiveTasks() =>
+            Tasks.Where(t => t.ArchivedAt == null
+                          && Projects.Any(p => p.Id == t.ProjectId && p.ArchivedAt == null));
     }
 
     /// <summary>Append/rewrite time blocks (blocks.json). One file, rewritten on save — volumes are small.</summary>

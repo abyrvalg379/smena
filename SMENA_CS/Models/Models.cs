@@ -9,6 +9,9 @@ namespace SMENA.Models
     {
         public Guid Id { get; set; } = Guid.NewGuid();
         public string Name { get; set; } = "";
+        public string ColorHex { get; set; } = "";
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? ArchivedAt { get; set; }
     }
 
     public class TrackedTask
@@ -23,6 +26,11 @@ namespace SMENA.Models
 
         // Optional accent color "#RRGGBB"; empty = palette hash.
         public string ColorHex { get; set; } = "";
+
+        // Work phase tag (modeling / texturing / …) — declared once per task, rolled up in reports.
+        public string Phase { get; set; } = "";
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? ArchivedAt { get; set; }
 
         [JsonIgnore]
         public List<string> KeywordList
@@ -56,6 +64,10 @@ namespace SMENA.Models
 
         // MANUAL / AUTO / IMPORTED; empty = legacy → derived from Process.
         public string Source { get; set; } = "";
+
+        // Who linked this block to its task: auto (keyword match at capture)
+        // or manual (assign drawer / merge / edit). Keeps re-classification safe.
+        public string Assigned { get; set; } = "auto";
 
         [JsonIgnore]
         public string EffectiveSource =>

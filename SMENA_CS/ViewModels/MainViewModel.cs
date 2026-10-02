@@ -33,6 +33,18 @@ namespace SMENA.ViewModels
         public double Percent { get; set; }   // 0..100 → bar width
     }
 
+    /// <summary>Row of the dashboard Today tree: project rows and their task children.</summary>
+    public class TreeRow
+    {
+        public string Name { get; set; } = "";
+        public string MinutesText { get; set; } = "";
+        public double Percent { get; set; }
+        public System.Windows.Media.Brush Bar { get; set; } = System.Windows.Media.Brushes.Gray;
+        public string Phase { get; set; } = "";
+        public bool IsProject { get; set; }
+        public bool IsUnsorted { get; set; }
+    }
+
     public class AppRow
     {
         public string Name { get; set; } = "";
@@ -70,7 +82,9 @@ namespace SMENA.ViewModels
         public ObservableCollection<BlockRow> TodayRows { get; } = new();
         public ObservableCollection<TaskTimerRow> TimerRows { get; } = new();
         public ObservableCollection<WeekGridRow> WeekGrid { get; } = new();
-        public ObservableCollection<BarRow> TodayBars { get; } = new();
+        public ObservableCollection<TreeRow> TodayBars { get; } = new();
+        public ReportsViewModel Reports { get; }
+        public ObservableCollection<BlockRow> RecentRows { get; } = new();
         public ObservableCollection<AppRow> AppRows { get; } = new();
 
         // ---- selected day (navigator) ----
@@ -188,17 +202,14 @@ namespace SMENA.ViewModels
             }
             LegendIdle = FormatSpan(TimeSpan.FromMinutes(idle));
 
-            DonutItems = blocks.GroupBy(b => b.TaskId)
-                .OrderByDescending(g => g.Sum(b => (b.End - b.Start).TotalMinutes))
-                .Select(g =>
+            DonutItems = Aggregation.BuildTree(blocks, _store.Projects, _store.Tasks, includeArchived: false)
+                .Select(n => new Controls.DonutItem
                 {
-                    var t = g.Key == null ? null : _store.Tasks.FirstOrDefault(x => x.Id == g.Key);
-                    return new Controls.DonutItem
-                    {
-                        Value = g.Sum(b => (b.End - b.Start).TotalMinutes),
-                        Brush = Palette.BrushFor(g.Key, t?.ColorHex)
-                    };
-                }).ToList();
+                    Value = n.Minutes,
+                    Brush = ProjectBrush(n)
+                })
+                .Where(d => d.Value > 0)
+                .ToList();
 
             var open = _log.Blocks.LastOrDefault(b => b.IsOpen);
             if (open != null)
@@ -391,6 +402,12 @@ namespace SMENA.ViewModels
         public string ManualButtonText { get => _manualButtonText; set { _manualButtonText = value; OnPropertyChanged(nameof(ManualButtonText)); } }
 
         public string DataFolder { get; }
+
+        public TaskStore Store => _store;
+        public TimeLog Log => _log;
+
+        public event Action<string>? NavigateRequested;
+        public void NavigateTo(string pageKey) => NavigateRequested?.Invoke(pageKey);
         public bool IsManual => _poller.ManualMode;
         public bool IsPaused => _poller.IsPaused;
 
@@ -428,6 +445,8 @@ namespace SMENA.ViewModels
             _refreshTicker = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
             _refreshTicker.Tick += (_, _) => RefreshAll();
             _refreshTicker.Start();
+
+            Reports = new ReportsViewModel(store, log);
 
             ReloadProjects();
             RefreshStatus(null);
@@ -621,6 +640,7 @@ namespace SMENA.ViewModels
                 StatusText = $"● MANUAL — {tname}";
                 return;
             }
+            if (s != null && s.State == TrackState.Offline) { StatusText = "○ OFFLINE — system was asleep"; return; }
             if (s == null || s.State == TrackState.Idle) { StatusText = "○ IDLE"; return; }
             var task = string.IsNullOrEmpty(s.TaskName) ? "unsorted" : s.TaskName;
             StatusText = $"● {s.Process} → {task}";
@@ -635,6 +655,7 @@ namespace SMENA.ViewModels
             RebuildApplications();
             RebuildTimerRows();
             RebuildWeek();
+            Reports.Rebuild();
             DataChanged?.Invoke();
         }
 
@@ -705,7 +726,7 @@ namespace SMENA.ViewModels
 
             var desired = new List<(Guid? key, string name, string proj)>();
             foreach (var p in _store.Projects)
-                foreach (var t in _store.Tasks.Where(t => t.ProjectId == p.Id))
+                foreach (var t in _store.ActiveTasks().Where(t => t.ProjectId == p.Id))
                     desired.Add((t.Id, t.Name, p.Name));
             desired.Add((null, "Unsorted", ""));
 
@@ -723,6 +744,7 @@ namespace SMENA.ViewModels
                 row.Name = d.name;
                 row.Project = d.proj;
                 var trow = d.key == null ? null : _store.Tasks.FirstOrDefault(x => x.Id == d.key);
+                row.Archived = trow?.ArchivedAt != null;
                 row.TaskBrush = Palette.BrushFor(d.key, trow?.ColorHex);
                 row.TodayText = FormatSpan(TimeSpan.FromMinutes(TodaySum(d.key)));
                 row.TotalText = FormatSpan(TimeSpan.FromMinutes(TotalSum(d.key)));
@@ -779,26 +801,25 @@ namespace SMENA.ViewModels
             StatTotal = FormatSpan(TimeSpan.FromMinutes(totalMin));
 
             TodayBars.Clear();
-            var perTask = blocks.GroupBy(b => b.TaskId)
-                .OrderByDescending(g => g.Sum(b => (b.End - b.Start).TotalMinutes)).ToList();
-            foreach (var g in perTask)
+            var tree = Aggregation.BuildTree(blocks, _store.Projects, _store.Tasks, includeArchived: false);
+            var treeTotal = tree.Sum(n => n.Minutes);
+            foreach (var node in tree)
             {
-                var mins = g.Sum(b => (b.End - b.Start).TotalMinutes);
-                string hex;
-                if (g.Key == null) hex = "#5A5A64";
-                else
+                TodayBars.Add(new TreeRow
                 {
-                    var t = _store.Tasks.FirstOrDefault(x => x.Id == g.Key);
-                    hex = Palette.HexFor(g.Key, t?.ColorHex);
-                }
-                TodayBars.Add(new BarRow
-                {
-                    Name = TaskName(g.Key),
-                    Bar = Palette.Frozen(hex),
-                    MinutesText = FormatSpan(TimeSpan.FromMinutes(mins)),
-                    Percent = totalMin < 1 ? 0 : Math.Min(100, mins / totalMin * 100.0)
+                    Name = node.Name + (node.IsArchived ? "  (archived)" : ""),
+                    MinutesText = FormatSpan(TimeSpan.FromMinutes(node.Minutes)),
+                    Percent = treeTotal < 1 ? 0 : Math.Min(100, node.Minutes / treeTotal * 100.0),
+                    Bar = ProjectBrush(node),
+                    Phase = node.Phase,
+                    IsProject = node.IsProject,
+                    IsUnsorted = node.IsUnsorted,
                 });
             }
+
+            RecentRows.Clear();
+            foreach (var r in TodayRows.Skip(Math.Max(0, TodayRows.Count - 5)))
+                RecentRows.Add(r);
 
             StatLongest = blocks.Count == 0 ? "—" :
                 FormatSpan(blocks.Max(b => b.End - b.Start));
@@ -861,6 +882,7 @@ namespace SMENA.ViewModels
                 .ToArray();
 
             var desired = new List<(Guid? key, string name, string proj)>();
+            // недельная сетка — отчёт: архивные таски с их историей остаются в таблице
             foreach (var p in _store.Projects)
                 foreach (var t in _store.Tasks.Where(t => t.ProjectId == p.Id))
                     desired.Add((t.Id, t.Name, p.Name));
@@ -989,7 +1011,10 @@ namespace SMENA.ViewModels
             if (MergeMode && _mergeUnsortedMode)
             {
                 foreach (var b in _log.Blocks.Where(b => b.TaskId == null))
+                {
                     b.TaskId = task.Id;
+                    b.Assigned = "manual";
+                }
                 _log.Save();
                 CancelAssign();
                 RefreshAll();
@@ -1010,7 +1035,10 @@ namespace SMENA.ViewModels
             if (rows == null) return;
             foreach (var r in rows)
                 foreach (var b in r.Blocks)
+                {
                     b.TaskId = task.Id;
+                    b.Assigned = "manual";
+                }
             _log.Save();
             CancelAssign();
             RefreshAll();
@@ -1105,7 +1133,10 @@ namespace SMENA.ViewModels
             var dst = GetTask(targetId);
             if (src == null || dst == null) return;
             foreach (var b in _log.Blocks.Where(b => b.TaskId == sourceId))
+            {
                 b.TaskId = targetId;
+                b.Assigned = "manual";
+            }
             _store.Tasks.Remove(src);
             _log.Save();
             _store.Save();
@@ -1146,6 +1177,40 @@ namespace SMENA.ViewModels
             var t = GetTask(id);
             if (t == null) return;
             t.Keywords = keywords.Trim();
+            _store.Save();
+            RefreshAll();
+        }
+
+        public bool IsProjectArchived(Guid projectId) =>
+            _store.Projects.FirstOrDefault(p => p.Id == projectId)?.ArchivedAt != null;
+
+        public void SetTaskArchived(Guid id, bool archived)
+        {
+            var t = GetTask(id);
+            if (t == null) return;
+            t.ArchivedAt = archived ? DateTime.Now : null;
+            _store.Save();
+            RefreshAll();
+            StatusText = archived ? $"Task archived: {t.Name}" : $"Task unarchived: {t.Name}";
+        }
+
+        public void SetProjectArchived(Guid projectId, bool archived)
+        {
+            var proj = _store.Projects.FirstOrDefault(p => p.Id == projectId);
+            if (proj == null) return;
+            proj.ArchivedAt = archived ? DateTime.Now : null;
+            foreach (var t in _store.Tasks.Where(t => t.ProjectId == projectId))
+                t.ArchivedAt = archived ? t.ArchivedAt ?? DateTime.Now : null;
+            _store.Save();
+            RefreshAll();
+            StatusText = archived ? $"Project archived: {proj.Name}" : $"Project unarchived: {proj.Name}";
+        }
+
+        public void SetTaskPhase(Guid id, string phase)
+        {
+            var t = GetTask(id);
+            if (t == null) return;
+            t.Phase = (phase ?? "").Trim();
             _store.Save();
             RefreshAll();
         }
@@ -1322,6 +1387,7 @@ namespace SMENA.ViewModels
                 b.Start += shiftStart;
                 b.End = ReferenceEquals(b, last) ? b.End + shiftEnd : b.End + shiftStart;
                 b.TaskId = EditBlockTask?.Id;
+                b.Assigned = "manual";
             }
             _log.Save();
             CloseEditBlock();
@@ -1375,7 +1441,7 @@ namespace SMENA.ViewModels
 
             foreach (var b in blocks)
                 _log.Blocks.Remove(b);
-            var merged = new ActivityBlock { Start = start, End = end, Process = longest.Process, Title = longest.Title, TaskId = taskId };
+            var merged = new ActivityBlock { Start = start, End = end, Process = longest.Process, Title = longest.Title, TaskId = taskId, Assigned = "manual" };
             _log.Add(merged);
             RefreshAll();
 
@@ -1453,6 +1519,13 @@ namespace SMENA.ViewModels
 
         private static string FormatSpan(TimeSpan s) =>
             s.TotalHours >= 1 ? $"{(int)s.TotalHours}h {s.Minutes:00}m" : $"{s.Minutes}m";
+
+        private static System.Windows.Media.Brush ProjectBrush(AggNode node)
+        {
+            if (node.IsProject || node.IsUnsorted)
+                return Palette.Frozen(string.IsNullOrEmpty(node.ColorHex) ? "#5AC8FA" : node.ColorHex);
+            return Palette.Frozen(Palette.HexFor(node.TaskId, node.ColorHex));
+        }
 
         // ---- projects / tasks CRUD ----
 
