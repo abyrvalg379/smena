@@ -61,8 +61,8 @@ namespace SMENA.Services
         private void RebuildMenu(object? sender, System.EventArgs? e)
         {
             _menu.Items.Clear();
-            _menu.Items.Add("Open", null, (_, _) => _widget.ShowFromTray());
-            _menu.Items.Add("Dashboard", null, (_, _) => _dashboard.ShowFromTray());
+            _menu.Items.Add("Open", null, (_, _) => App.ShowWidgetSurface());
+            _menu.Items.Add("Dashboard", null, (_, _) => App.ShowDashboardSurface());
             _menu.Items.Add(new ToolStripSeparator());
             _menu.Items.Add(
                 _vm.IsPaused ? "Resume tracking" : "Pause tracking",

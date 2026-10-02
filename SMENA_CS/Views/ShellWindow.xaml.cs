@@ -52,6 +52,12 @@ namespace SMENA.Views
             ShowPage(key);
         }
 
+        protected override void OnPreviewKeyDown(KeyEventArgs e)
+        {
+            base.OnPreviewKeyDown(e);
+            if (e.Key == Key.F11) ToggleFullscreen();
+        }
+
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
@@ -105,7 +111,19 @@ namespace SMENA.Views
         }
 
         private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
-        private void Close_Click(object sender, RoutedEventArgs e) => Hide();
+        private void Close_Click(object sender, RoutedEventArgs e)
+        {
+            Hide();
+            if (!App.IsExiting) App.ShowWidgetSurface();   // dashboard closed -> widget comes back
+        }
+
+        private void Fullscreen_Click(object sender, RoutedEventArgs e) => ToggleFullscreen();
+
+        private void ToggleFullscreen()
+        {
+            // borderless window: Maximized covers the taskbar = fullscreen
+            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        }
 
         private void PrevDay_Click(object sender, RoutedEventArgs e) => _vm.PrevDay();
         private void NextDay_Click(object sender, RoutedEventArgs e) => _vm.NextDay();

@@ -152,7 +152,30 @@ namespace SMENA
             catch { /* registry optional */ }
         }
 
-        public static void ShowDashboard() => (Current as App)?._shell?.ShowShell();
+        // ---- surface swap (FLOMASTER-style): widget and dashboard never live together ----
+
+        public static void ShowDashboardSurface()
+        {
+            var a = (App)Current;
+            a._widget?.Hide();
+            a._shell?.ShowShell();
+        }
+
+        public static void ShowWidgetSurface()
+        {
+            var a = (App)Current;
+            a._shell?.Hide();
+            a._widget?.ShowFromTray();
+        }
+
+        public static void ToggleSurface()
+        {
+            var a = (App)Current;
+            if (a._shell != null && a._shell.IsVisible) ShowWidgetSurface();
+            else ShowDashboardSurface();
+        }
+
+        public static void ShowDashboard() => ShowDashboardSurface();
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);

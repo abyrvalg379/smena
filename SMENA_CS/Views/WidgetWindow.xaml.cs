@@ -55,7 +55,7 @@ namespace SMENA.Views
                 case 1: _vm.StartTrackingQuick(); break;
                 case 2: _vm.TogglePause(); break;
                 case 3:
-                    if (IsVisible) Hide(); else ShowWidget();
+                    App.ToggleSurface();
                     break;
             }
             return IntPtr.Zero;
@@ -138,7 +138,7 @@ namespace SMENA.Views
 
         private void Pin_Click(object sender, RoutedEventArgs e) => _vm.WidgetTopmost = !_vm.WidgetTopmost;
         private void Pause_Click(object sender, RoutedEventArgs e) => _vm.TogglePause();
-        private void Dashboard_Click(object sender, RoutedEventArgs e) => App.ShowDashboard();
+        private void Dashboard_Click(object sender, RoutedEventArgs e) => App.ShowDashboardSurface();
         private void CloseBtn_Click(object sender, RoutedEventArgs e) => Hide();
 
         private void RowToggle_Click(object sender, RoutedEventArgs e)
