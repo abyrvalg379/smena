@@ -318,6 +318,75 @@ namespace SMENA.Views
 
         // ---- quick task context menu ----
 
+        // ---- Quick Actions: drag a row onto another to merge time ----
+        // Unsorted dropped on a task re-buckets all Unsorted time (non-destructive);
+        // a task dropped on a task merges them (the source task is removed, confirm first).
+
+        private Point _quickDragOrigin;
+        private TaskTimerRow? _quickDragSource;
+
+        private void QuickTaskList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _quickDragSource = null;
+            if (ItemsControl.ContainerFromElement(QuickTaskList, e.OriginalSource as DependencyObject) is not ListBoxItem item)
+                return;
+            _quickDragSource = item.DataContext as TaskTimerRow;
+            _quickDragOrigin = e.GetPosition(QuickTaskList);
+        }
+
+        private void QuickTaskList_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || _quickDragSource == null) return;
+            var pos = e.GetPosition(QuickTaskList);
+            if (Math.Abs(pos.X - _quickDragOrigin.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(pos.Y - _quickDragOrigin.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+            var row = _quickDragSource;
+            _quickDragSource = null;
+            DragDrop.DoDragDrop(QuickTaskList, new DataObject(typeof(TaskTimerRow), row), DragDropEffects.Move);
+        }
+
+        private void QuickRow_DragEnter(object sender, DragEventArgs e)
+        {
+            if (sender is ListBoxItem { DataContext: TaskTimerRow t } && t.IsTask &&
+                e.Data.GetDataPresent(typeof(TaskTimerRow)))
+                ((ListBoxItem)sender).Background = ThemeApplier.OptBrush("Hover") ?? System.Windows.Media.Brushes.DimGray;
+        }
+
+        private void QuickRow_DragLeave(object sender, DragEventArgs e)
+        {
+            if (sender is ListBoxItem item) item.Background = System.Windows.Media.Brushes.Transparent;
+        }
+
+        private void QuickRow_Drop(object sender, DragEventArgs e)
+        {
+            if (sender is ListBoxItem item) item.Background = System.Windows.Media.Brushes.Transparent;
+            if (e.Data.GetData(typeof(TaskTimerRow)) is not TaskTimerRow src) return;
+            if (sender is not ListBoxItem { DataContext: TaskTimerRow target } || !target.IsTask) return;
+            if (ReferenceEquals(src, target)) return;
+
+            if (src.IsTask)
+            {
+                var res = System.Windows.MessageBox.Show(
+                    $"Слить «{src.Name}» в «{target.Name}»?\n\nВся время перенесётся, задача «{src.Name}» будет удалена.",
+                    "SMENA — merge", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+                if (res != System.Windows.MessageBoxResult.Yes) return;
+                _vm.MergeTasks(src.TaskId!.Value, target.TaskId!.Value);
+                _vm.StatusText = $"«{src.Name}» слита в «{target.Name}»";
+            }
+            else
+            {
+                _vm.MergeUnsortedInto(target.TaskId!.Value);
+                _vm.StatusText = $"Всё время Unsorted перенесено в «{target.Name}»";
+            }
+        }
+
+        private void QuickTaskList_Drop(object sender, DragEventArgs e)
+        {
+            foreach (var it in QuickTaskList.Items)
+                if (QuickTaskList.ItemContainerGenerator.ContainerFromItem(it) is ListBoxItem li)
+                    li.Background = System.Windows.Media.Brushes.Transparent;
+        }
+
         private static TaskTimerRow? RowFromMenu(object sender, RoutedEventArgs e)
         {
             if (sender is MenuItem { Parent: ContextMenu { PlacementTarget: FrameworkElement fe } } &&

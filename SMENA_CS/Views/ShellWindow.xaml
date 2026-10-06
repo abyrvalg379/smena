@@ -345,7 +345,17 @@
 
                     <ListBox x:Name="QuickTaskList" ItemsSource="{Binding TimerRows}" Margin="0,10,0,0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                             SelectedItem="{Binding SelectedQuickTask, Mode=TwoWay}">
+                             SelectedItem="{Binding SelectedQuickTask, Mode=TwoWay}"
+                             AllowDrop="True" Drop="QuickTaskList_Drop">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="AllowDrop" Value="True"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <EventSetter Event="DragEnter" Handler="QuickRow_DragEnter"/>
+                                <EventSetter Event="DragLeave" Handler="QuickRow_DragLeave"/>
+                                <EventSetter Event="Drop" Handler="QuickRow_Drop"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Grid Background="Transparent">

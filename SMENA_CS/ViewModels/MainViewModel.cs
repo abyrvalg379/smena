@@ -1218,6 +1218,21 @@ namespace SMENA.ViewModels
             StatusText = $"Unsorted reset: {junk.Count} blocks deleted.";
         }
 
+        /// <summary>Drop-target for the Quick Actions drag: ALL Unsorted time moves into the target
+        /// task (nothing is deleted — this is re-assignment, not cleanup).</summary>
+        public void MergeUnsortedInto(Guid targetId)
+        {
+            var dst = GetTask(targetId);
+            if (dst == null) return;
+            foreach (var b in _log.Blocks.Where(b => b.TaskId == null))
+            {
+                b.TaskId = targetId;
+                b.Assigned = "manual";
+            }
+            _log.Save();
+            RefreshAll();
+        }
+
         /// <summary>Collapse: all source-task time moves into the target task, source task is removed.</summary>
         public void MergeTasks(Guid sourceId, Guid targetId)
         {
