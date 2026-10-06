@@ -182,22 +182,17 @@
                             <TextBlock Style="{StaticResource NavIcon}" Text="&#xE823;"/><TextBlock Text="Timeline" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="NavSessions" Style="{StaticResource NavBtn}" Click="Nav_Click" HorizontalContentAlignment="Left">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource NavIcon}" Text="&#xE8FD;"/><TextBlock Text="Sessions" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                    
 
                     <TextBlock Text="PROJECTS" Style="{StaticResource SectionHdr}"/>
                     <Button x:Name="NavProjects" Style="{StaticResource NavBtn}" Click="Nav_Click" HorizontalContentAlignment="Left">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource NavIcon}" Text="&#xE8A5;"/><TextBlock Text="Active" VerticalAlignment="Center"/>
+                            <TextBlock Style="{StaticResource NavIcon}" Text="&#xE8FD;"/><TextBlock Text="Projects" VerticalAlignment="Center"/>
                         </StackPanel>
                         <Button.Triggers/>
                     </Button>
                     <Button x:Name="NavProjectsAll" Style="{StaticResource NavBtn}" Click="Nav_Click" HorizontalContentAlignment="Left">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource NavIcon}" Text="&#xE8FD;"/><TextBlock Text="All Projects" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="NavJournal" Style="{StaticResource NavBtn}" Click="Nav_Click" HorizontalContentAlignment="Left"
@@ -346,14 +341,12 @@
                     <ListBox x:Name="QuickTaskList" ItemsSource="{Binding TimerRows}" Margin="0,10,0,0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              SelectedItem="{Binding SelectedQuickTask, Mode=TwoWay}"
-                             AllowDrop="True" Drop="QuickTaskList_Drop">
+                             PreviewMouseLeftButtonDown="QuickTaskList_PreviewMouseLeftButtonDown"
+                             PreviewMouseMove="QuickTaskList_PreviewMouseMove"
+                             PreviewMouseLeftButtonUp="QuickTaskList_PreviewMouseLeftButtonUp">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
-                                <Setter Property="AllowDrop" Value="True"/>
                                 <Setter Property="Background" Value="Transparent"/>
-                                <EventSetter Event="DragEnter" Handler="QuickRow_DragEnter"/>
-                                <EventSetter Event="DragLeave" Handler="QuickRow_DragLeave"/>
-                                <EventSetter Event="Drop" Handler="QuickRow_Drop"/>
                             </Style>
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
@@ -370,7 +363,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <Ellipse Width="9" Height="9" VerticalAlignment="Center" Fill="{Binding TaskBrush}"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Margin="8,0,0,0"
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Margin="8,0,10,0"
                                                TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Column="2" Text="{Binding TotalText}" FontSize="10"
                                                Foreground="{DynamicResource FgDim}" VerticalAlignment="Center" Margin="0,0,6,0"/>
