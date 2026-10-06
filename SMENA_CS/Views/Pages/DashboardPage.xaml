@@ -348,7 +348,7 @@
                         <ColumnDefinition Width="110"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel x:Name="GanttLabels" Grid.Column="0"/>
+                    <Canvas x:Name="GanttLabels" Grid.Column="0" Height="180"/>
                     <Canvas x:Name="GanttCanvas" Grid.Column="1" Height="180"/>
                 </Grid>
             </Grid>

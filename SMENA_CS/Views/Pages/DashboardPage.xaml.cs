@@ -163,13 +163,14 @@ namespace SMENA.Views
             const double rowH = 28;
             double canvasH = Math.Max(120, rows.Count * rowH + 6);
             canvas.Height = canvasH;
+            labels.Height = canvasH;   // label canvas must match — rows are aligned by rowH slots
 
             int rowIdx = 0;
             foreach (var r in rows)
             {
                 double top = rowIdx * rowH + 4;
 
-                var label = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, top - 2, 0, 0) };
+                var label = new StackPanel { Orientation = Orientation.Horizontal };   // Canvas.SetTop positions it — a Margin would double the offset
                 if (!r.Header)
                     label.Children.Add(new Ellipse { Width = 8, Height = 8, Fill = r.Brush, VerticalAlignment = VerticalAlignment.Center });
                 label.Children.Add(new TextBlock
