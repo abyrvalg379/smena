@@ -355,7 +355,7 @@
                                VerticalAlignment="Center" Margin="4,0,0,0"/>
                     <Button Grid.Column="1" Style="{StaticResource IconBtn}" Click="CycleVariant_Click" Padding="4,3"
                             ToolTip="Widget layout: board → classic → minimal">
-                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10" Text="&#xE798;"/>
+                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10" Text="&#xE8AB;"/>
                     </Button>
                     <Button Grid.Column="2" Style="{StaticResource IconBtn}" Click="Pause_Click" Padding="4,3"
                             ToolTip="Pause / resume tracking">
@@ -474,7 +474,7 @@
                 </StackPanel>
                 <Button Grid.Column="1" Style="{StaticResource IconBtn}" Click="CycleVariant_Click" Margin="0,0,2,0"
                         ToolTip="Widget layout: classic → minimal → board">
-                    <TextBlock FontFamily="Segoe Fluent Icons" FontSize="11" Text="&#xE798;"/>
+                    <TextBlock FontFamily="Segoe Fluent Icons" FontSize="11" Text="&#xE8AB;"/>
                 </Button>
                 <Button Grid.Column="2" Style="{StaticResource IconBtn}" Click="Pause_Click" Margin="0,0,2,0"
                         ToolTip="Pause / resume tracking">
