@@ -273,7 +273,7 @@
             </Border>
 
             <!-- page header -->
-            <Grid Grid.Row="0">
+            <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="Chrome_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -315,7 +315,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- window buttons + rail header -->
-                <Grid Grid.Row="0" VerticalAlignment="Top">
+                <Grid Grid.Row="0" VerticalAlignment="Top" Background="Transparent" MouseLeftButtonDown="Chrome_MouseLeftButtonDown">
                     <TextBlock Text="⚙ Quick Actions" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Fg}"
                                Margin="14,10,0,0" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
