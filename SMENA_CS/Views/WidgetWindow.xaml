@@ -1,11 +1,9 @@
 <Window x:Class="SMENA.Views.WidgetWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="clr-namespace:SMENA.ViewModels"
-        Title="SMENA" Width="380" SizeToContent="Height"
+        Title="SMENA" SizeToContent="Height"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="True" ResizeMode="NoResize"
-        Icon="pack://application:,,,/Resources/smena.ico"
         Topmost="{Binding WidgetTopmost, Mode=TwoWay}"
         WindowStartupLocation="Manual">
 
@@ -69,6 +67,363 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+            <!-- ═══ variant: CLASSIC (logo header + working card + tasks + quick add) ═══ -->
+        <DataTemplate x:Key="BodyClassic">
+            <StackPanel>
+                <!-- WORKING card: same gradient hero as the dashboard -->
+                <Border Margin="12,10,12,0" CornerRadius="10" Padding="12,10">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#101720" Offset="0"/>
+                            <GradientStop Color="#0F2318" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Border Background="#1D3324" CornerRadius="4" Padding="8,3">
+                                <TextBlock FontSize="9" FontWeight="Bold" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="IDLE"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource FgDim}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                    <Setter Property="Text" Value="WORKING"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource Green}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+                            <TextBlock Text="{Binding StatusLine}" FontSize="9" Foreground="{DynamicResource FgDim}"
+                                       VerticalAlignment="Center" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding HeroTime}" FontFamily="Consolas" FontSize="30" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Fg}" Margin="0,6,0,0"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,1,7,0"
+                                     Style="{StaticResource PulseDot}"/>
+                            <TextBlock Text="{Binding WorkingTaskName}" FontSize="13" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding WorkingTaskName}" Value="">
+                                                <Setter Property="Text" Value="nothing tracked"/>
+                                                <Setter Property="FontWeight" Value="Normal"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource FgDim}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Border Background="{DynamicResource PanelHi}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                                    CornerRadius="4" Padding="7,3" Margin="0,0,6,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE7F4;" FontFamily="Segoe Fluent Icons" FontSize="10"
+                                               Foreground="{DynamicResource FgDim}" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding CurrentApp}" FontSize="10" Foreground="{DynamicResource Fg}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource PanelHi}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                                    CornerRadius="4" Padding="7,3">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8A5;" FontFamily="Segoe Fluent Icons" FontSize="10"
+                                               Foreground="{DynamicResource FgDim}" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding CurrentFile}" FontSize="10" Foreground="{DynamicResource Fg}"/>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Text="{Binding TodayTotal}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Accent}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- tasks -->
+                <TextBlock Text="TASKS" Style="{StaticResource Hdr}" Margin="16,10,0,4"/>
+                <ItemsControl ItemsSource="{Binding TimerRows}" Margin="10,0,10,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,2" Background="Transparent">
+                                <Grid.ContextMenu>
+                                    <ContextMenu Opened="RowMenu_Opened"/>
+                                </Grid.ContextMenu>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="66"/>
+                                    <ColumnDefinition Width="52"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Style="{StaticResource IconBtn}" Click="RowToggle_Click"
+                                        Width="22" Height="20" HorizontalAlignment="Left" Padding="4,2"
+                                        ToolTip="Manual stopwatch">
+                                    <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10" Text="{Binding Glyph}"/>
+                                </Button>
+                                <Ellipse Grid.Column="1" Width="8" Height="8" Fill="{Binding TaskBrush}"
+                                         VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TaskName" Grid.Column="2" Text="{Binding Name}" FontSize="12"
+                                           Margin="6,0,0,0"
+                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource Green}"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBox x:Name="NameEdit" Grid.Column="2" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                         Visibility="Collapsed" FontSize="12" Padding="2,0"
+                                         KeyDown="WidgetNameEdit_KeyDown" IsVisibleChanged="WidgetNameEdit_IsVisibleChanged"/>
+                                <TextBlock Grid.Column="3" Text="{Binding SessionText}" FontFamily="Consolas" FontSize="12"
+                                           TextAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource FgDim}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource Green}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Grid.Column="4" Text="{Binding TotalText}" FontSize="10"
+                                           Foreground="{DynamicResource FgDim}" TextAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                    <Setter TargetName="TaskName" Property="Visibility" Value="Collapsed"/>
+                                    <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- quick add -->
+                <Grid Margin="12,8,12,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="QuickBox" FontSize="12" Padding="8,5" VerticalContentAlignment="Center"
+                             KeyDown="QuickBox_KeyDown"/>
+                    <Button Grid.Column="1" Style="{StaticResource IconBtn}" Click="QuickAdd_Click" Margin="6,0,0,0"
+                            ToolTip="Add task">
+                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="12" Text="&#xE710;"/>
+                    </Button>
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ═══ variant: MINIMAL (hero line + tasks + quick add, no card, no strip) ═══ -->
+        <DataTemplate x:Key="BodyMinimal">
+            <StackPanel>
+                <StackPanel Margin="14,10,14,2">
+                    <TextBlock Text="{Binding HeroTime}" FontFamily="Consolas" FontSize="26" FontWeight="SemiBold"
+                               Foreground="{DynamicResource Fg}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                        <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,1,7,0"
+                                 Style="{StaticResource PulseDot}"/>
+                        <TextBlock Text="{Binding WorkingTaskName}" FontSize="12" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding WorkingTaskName}" Value="">
+                                            <Setter Property="Text" Value="nothing tracked"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource FgDim}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Text="{Binding TodayTotal}" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Accent}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <TextBlock Text="TASKS" Style="{StaticResource Hdr}" Margin="16,10,0,4"/>
+                <ItemsControl ItemsSource="{Binding TimerRows}" Margin="10,0,10,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,2" Background="Transparent">
+                                <Grid.ContextMenu>
+                                    <ContextMenu Opened="RowMenu_Opened"/>
+                                </Grid.ContextMenu>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="66"/>
+                                    <ColumnDefinition Width="52"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Style="{StaticResource IconBtn}" Click="RowToggle_Click"
+                                        Width="22" Height="20" HorizontalAlignment="Left" Padding="4,2"
+                                        ToolTip="Manual stopwatch">
+                                    <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10" Text="{Binding Glyph}"/>
+                                </Button>
+                                <Ellipse Grid.Column="1" Width="8" Height="8" Fill="{Binding TaskBrush}"
+                                         VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TaskName" Grid.Column="2" Text="{Binding Name}" FontSize="12"
+                                           Margin="6,0,0,0"
+                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource Green}"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBox x:Name="NameEdit" Grid.Column="2" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                         Visibility="Collapsed" FontSize="12" Padding="2,0"
+                                         KeyDown="WidgetNameEdit_KeyDown" IsVisibleChanged="WidgetNameEdit_IsVisibleChanged"/>
+                                <TextBlock Grid.Column="3" Text="{Binding SessionText}" FontFamily="Consolas" FontSize="12"
+                                           TextAlignment="Right" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource FgDim}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource Green}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Grid.Column="4" Text="{Binding TotalText}" FontSize="10"
+                                           Foreground="{DynamicResource FgDim}" TextAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                    <Setter TargetName="TaskName" Property="Visibility" Value="Collapsed"/>
+                                    <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- quick add -->
+                <Grid Margin="12,8,12,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="QuickBox" FontSize="12" Padding="8,5" VerticalContentAlignment="Center"
+                             KeyDown="QuickBox_KeyDown"/>
+                    <Button Grid.Column="1" Style="{StaticResource IconBtn}" Click="QuickAdd_Click" Margin="6,0,0,0"
+                            ToolTip="Add task">
+                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="12" Text="&#xE710;"/>
+                    </Button>
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ═══ variant: BOARD (narrow clock tabloid, own mini header) ═══ -->
+        <DataTemplate x:Key="BodyBoard">
+            <StackPanel>
+                <Grid Background="Transparent" MouseLeftButtonDown="Header_MouseLeftButtonDown" Margin="6,8,6,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="⌗" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Accent}"
+                               VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    <Button Grid.Column="1" Style="{StaticResource IconBtn}" Click="CycleVariant_Click" Padding="4,3"
+                            ToolTip="Widget layout: board → classic → minimal">
+                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10" Text="&#xE798;"/>
+                    </Button>
+                    <Button Grid.Column="2" Style="{StaticResource IconBtn}" Click="Pause_Click" Padding="4,3"
+                            ToolTip="Pause / resume tracking">
+                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="&#xE769;"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                            <Setter Property="Text" Value="&#xE768;"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource Orange}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
+                    <Button Grid.Column="3" Style="{StaticResource IconBtn}" Click="Pin_Click" Padding="4,3"
+                            ToolTip="Always on top">
+                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="&#xE77A;"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding WidgetTopmost}" Value="True">
+                                            <Setter Property="Text" Value="&#xE718;"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
+                    <Button Grid.Column="4" Style="{StaticResource IconBtn}" Click="Dashboard_Click" Padding="4,3"
+                            ToolTip="Dashboard">
+                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10" Text="&#xE700;"/>
+                    </Button>
+                    <Button Grid.Column="5" Style="{StaticResource IconBtn}" Click="CloseBtn_Click" Padding="4,3"
+                            ToolTip="Hide to tray">
+                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10" Text="&#xE8BB;"/>
+                    </Button>
+                </Grid>
+
+                <TextBlock Text="{Binding HeroTime}" FontFamily="Consolas" FontSize="26" FontWeight="SemiBold"
+                           Foreground="{DynamicResource Fg}" Margin="12,8,6,0"/>
+
+                <StackPanel Orientation="Horizontal" Margin="12,4,6,0">
+                    <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,1,6,0"
+                             Style="{StaticResource PulseDot}"/>
+                    <TextBlock Text="{Binding WorkingTaskName}" FontSize="11" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WorkingTaskName}" Value="">
+                                        <Setter Property="Text" Value="nothing tracked"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource FgDim}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+
+                <TextBlock Text="{Binding TodayTotal}" FontSize="11" FontWeight="SemiBold"
+                           Foreground="{DynamicResource Accent}" Margin="12,6,0,12"/>
+            </StackPanel>
+        </DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -86,10 +441,21 @@
         </Border.Style>
         <StackPanel>
 
-            <!-- header: logo chip + window buttons (dashboard sidebar style) -->
+            <!-- header: logo chip + window buttons; hidden on the board variant (it has its own) -->
             <Grid Background="Transparent" MouseLeftButtonDown="Header_MouseLeftButtonDown" Margin="12,10,8,0">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding WidgetVariant}" Value="board">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
@@ -106,7 +472,11 @@
                         <TextBlock Text="Time well spent." FontSize="8" Foreground="{DynamicResource FgDim}" Margin="0,-1,0,0"/>
                     </StackPanel>
                 </StackPanel>
-                <Button Grid.Column="1" Style="{StaticResource IconBtn}" Click="Pause_Click" Margin="0,0,2,0"
+                <Button Grid.Column="1" Style="{StaticResource IconBtn}" Click="CycleVariant_Click" Margin="0,0,2,0"
+                        ToolTip="Widget layout: classic → minimal → board">
+                    <TextBlock FontFamily="Segoe Fluent Icons" FontSize="11" Text="&#xE798;"/>
+                </Button>
+                <Button Grid.Column="2" Style="{StaticResource IconBtn}" Click="Pause_Click" Margin="0,0,2,0"
                         ToolTip="Pause / resume tracking">
                     <TextBlock FontFamily="Segoe Fluent Icons" FontSize="11">
                         <TextBlock.Style>
@@ -122,7 +492,7 @@
                         </TextBlock.Style>
                     </TextBlock>
                 </Button>
-                <Button Grid.Column="2" Style="{StaticResource IconBtn}" Click="Pin_Click" Margin="0,0,2,0"
+                <Button Grid.Column="3" Style="{StaticResource IconBtn}" Click="Pin_Click" Margin="0,0,2,0"
                         ToolTip="Always on top">
                     <TextBlock FontFamily="Segoe Fluent Icons" FontSize="11">
                         <TextBlock.Style>
@@ -137,175 +507,48 @@
                         </TextBlock.Style>
                     </TextBlock>
                 </Button>
-                <Button Grid.Column="3" Style="{StaticResource IconBtn}" Click="Dashboard_Click" Margin="0,0,2,0"
+                <Button Grid.Column="4" Style="{StaticResource IconBtn}" Click="Dashboard_Click" Margin="0,0,2,0"
                         ToolTip="Dashboard (tasks, week, export)">
                     <TextBlock FontFamily="Segoe Fluent Icons" FontSize="11" Text="&#xE700;"/>
                 </Button>
-                <Button Grid.Column="4" Style="{StaticResource IconBtn}" Click="CloseBtn_Click" ToolTip="Hide to tray">
+                <Button Grid.Column="5" Style="{StaticResource IconBtn}" Click="CloseBtn_Click" ToolTip="Hide to tray">
                     <TextBlock FontFamily="Segoe Fluent Icons" FontSize="11" Text="&#xE8BB;"/>
                 </Button>
             </Grid>
 
-            <!-- WORKING card: same gradient hero as the dashboard -->
-            <Border Margin="12,10,12,0" CornerRadius="10" Padding="12,10">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#101720" Offset="0"/>
-                        <GradientStop Color="#0F2318" Offset="1"/>
-                    </LinearGradientBrush>
-                </Border.Background>
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Border Background="#1D3324" CornerRadius="4" Padding="8,3">
-                            <TextBlock FontSize="9" FontWeight="Bold" VerticalAlignment="Center">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="IDLE"/>
-                                        <Setter Property="Foreground" Value="{DynamicResource FgDim}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                                                <Setter Property="Text" Value="WORKING"/>
-                                                <Setter Property="Foreground" Value="{DynamicResource Green}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </Border>
-                        <TextBlock Text="{Binding StatusLine}" FontSize="9" Foreground="{DynamicResource FgDim}"
-                                   VerticalAlignment="Center" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"/>
-                    </StackPanel>
-
-                    <TextBlock Text="{Binding HeroTime}" FontFamily="Consolas" FontSize="30" FontWeight="SemiBold"
-                               Foreground="{DynamicResource Fg}" Margin="0,6,0,0"/>
-
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                        <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,1,7,0"
-                                 Style="{StaticResource PulseDot}"/>
-                        <TextBlock Text="{Binding WorkingTaskName}" FontSize="13" VerticalAlignment="Center"
-                                   TextTrimming="CharacterEllipsis">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding WorkingTaskName}" Value="">
-                                            <Setter Property="Text" Value="nothing tracked"/>
-                                            <Setter Property="FontWeight" Value="Normal"/>
-                                            <Setter Property="Foreground" Value="{DynamicResource FgDim}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <Border Background="{DynamicResource PanelHi}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
-                                CornerRadius="4" Padding="7,3" Margin="0,0,6,0">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE7F4;" FontFamily="Segoe Fluent Icons" FontSize="10"
-                                           Foreground="{DynamicResource FgDim}" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding CurrentApp}" FontSize="10" Foreground="{DynamicResource Fg}"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Background="{DynamicResource PanelHi}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
-                                CornerRadius="4" Padding="7,3">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE8A5;" FontFamily="Segoe Fluent Icons" FontSize="10"
-                                           Foreground="{DynamicResource FgDim}" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding CurrentFile}" FontSize="10" Foreground="{DynamicResource Fg}"/>
-                            </StackPanel>
-                        </Border>
-                        <TextBlock Text="{Binding TodayTotal}" FontSize="12" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Accent}" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- tasks -->
-            <TextBlock Text="TASKS" Style="{StaticResource Hdr}" Margin="16,10,0,4"/>
-            <ItemsControl ItemsSource="{Binding TimerRows}" Margin="10,0,10,0">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Grid Margin="0,2" Background="Transparent">
-                            <Grid.ContextMenu>
-                                <ContextMenu Opened="RowMenu_Opened"/>
-                            </Grid.ContextMenu>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="24"/>
-                                <ColumnDefinition Width="12"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="66"/>
-                                <ColumnDefinition Width="52"/>
-                            </Grid.ColumnDefinitions>
-                            <Button Grid.Column="0" Style="{StaticResource IconBtn}" Click="RowToggle_Click"
-                                    Width="22" Height="20" HorizontalAlignment="Left" Padding="4,2"
-                                    ToolTip="Manual stopwatch">
-                                <TextBlock FontFamily="Segoe Fluent Icons" FontSize="10" Text="{Binding Glyph}"/>
-                            </Button>
-                            <Ellipse Grid.Column="1" Width="8" Height="8" Fill="{Binding TaskBrush}"
-                                     VerticalAlignment="Center"/>
-                            <TextBlock x:Name="TaskName" Grid.Column="2" Text="{Binding Name}" FontSize="12"
-                                       Margin="6,0,0,0"
-                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                <Setter Property="Foreground" Value="{DynamicResource Green}"/>
-                                                <Setter Property="FontWeight" Value="SemiBold"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <TextBox x:Name="NameEdit" Grid.Column="2" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
-                                     Visibility="Collapsed" FontSize="12" Padding="2,0"
-                                     KeyDown="WidgetNameEdit_KeyDown" IsVisibleChanged="WidgetNameEdit_IsVisibleChanged"/>
-                            <TextBlock Grid.Column="3" Text="{Binding SessionText}" FontFamily="Consolas" FontSize="12"
-                                       TextAlignment="Right" VerticalAlignment="Center">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{DynamicResource FgDim}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                <Setter Property="Foreground" Value="{DynamicResource Green}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <TextBlock Grid.Column="4" Text="{Binding TotalText}" FontSize="10"
-                                       Foreground="{DynamicResource FgDim}" TextAlignment="Right" VerticalAlignment="Center"/>
-                        </Grid>
-                        <DataTemplate.Triggers>
-                            <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                <Setter TargetName="TaskName" Property="Visibility" Value="Collapsed"/>
-                                <Setter TargetName="NameEdit" Property="Visibility" Value="Visible"/>
+            <!-- variant body -->
+            <ContentControl Content="{Binding}">
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Setter Property="ContentTemplate" Value="{StaticResource BodyClassic}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding WidgetVariant}" Value="minimal">
+                                <Setter Property="ContentTemplate" Value="{StaticResource BodyMinimal}"/>
                             </DataTrigger>
-                        </DataTemplate.Triggers>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                            <DataTrigger Binding="{Binding WidgetVariant}" Value="board">
+                                <Setter Property="ContentTemplate" Value="{StaticResource BodyBoard}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+            </ContentControl>
 
-            <!-- quick add -->
-            <Grid Margin="12,8,12,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox x:Name="QuickBox" FontSize="12" Padding="8,5" VerticalContentAlignment="Center"
-                         KeyDown="QuickBox_KeyDown"/>
-                <Button Grid.Column="1" Style="{StaticResource IconBtn}" Click="QuickAdd_Click" Margin="6,0,0,0"
-                        ToolTip="Add task">
-                    <TextBlock FontFamily="Segoe Fluent Icons" FontSize="12" Text="&#xE710;"/>
-                </Button>
-            </Grid>
-
-            <!-- today strip -->
+            <!-- today strip (classic only) -->
             <Border Margin="12,10,12,12" Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Border}"
                     BorderThickness="1" CornerRadius="10" Padding="10,2">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding WidgetVariant}" Value="minimal">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding WidgetVariant}" Value="board">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <StackPanel>
                     <Canvas x:Name="MiniTimeline" Height="20"/>
                     <Canvas x:Name="MiniTimelineLabels" Height="11"/>

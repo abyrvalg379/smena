@@ -79,6 +79,15 @@ namespace SMENA.Views
             _vm = vm;
             DataContext = vm;
 
+            // Window.Width binding is unreliable together with SizeToContent — set it
+            // explicitly and follow variant changes
+            Width = _vm.WidgetPixelWidth;
+            _vm.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(MainViewModel.WidgetPixelWidth))
+                    Width = _vm.WidgetPixelWidth;
+            };
+
             Closing += (_, args) =>
             {
                 if (!App.IsExiting)
@@ -144,6 +153,7 @@ namespace SMENA.Views
             _vm.SaveWidgetPos(Left, Top);
         }
 
+        private void CycleVariant_Click(object sender, RoutedEventArgs e) => _vm.CycleWidgetVariant();
         private void Pin_Click(object sender, RoutedEventArgs e) => _vm.WidgetTopmost = !_vm.WidgetTopmost;
         private void Pause_Click(object sender, RoutedEventArgs e) => _vm.TogglePause();
         private void Dashboard_Click(object sender, RoutedEventArgs e) => App.ShowDashboardSurface();
@@ -290,9 +300,12 @@ namespace SMENA.Views
 
         private void QuickAdd_Click(object sender, RoutedEventArgs e)
         {
-            _vm.QuickAddTask(QuickBox.Text);
-            QuickBox.Clear();
-            QuickBox.Focus();
+            // the quick-add box lives inside a variant template — reach it via the row grid
+            if (sender is not Button btn || btn.Parent is not Grid g) return;
+            if (g.Children[0] is not TextBox box) return;
+            _vm.QuickAddTask(box.Text);
+            box.Clear();
+            box.Focus();
         }
 
         private void RenderMini()

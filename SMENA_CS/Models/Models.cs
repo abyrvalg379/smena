@@ -88,6 +88,9 @@ namespace SMENA.Models
         public double? WidgetLeft { get; set; }
         public double? WidgetTop { get; set; }
 
+        // widget layout: classic / minimal / board (cycle button in the widget header)
+        public string WidgetVariant { get; set; } = "classic";
+
         // tracking (TIMETRACK spec)
         public bool AutoMode { get; set; } = true;
         public bool IdleDetection { get; set; } = true;

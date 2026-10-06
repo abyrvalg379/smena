@@ -1741,6 +1741,42 @@ namespace SMENA.ViewModels
             set { _config.Current.WidgetTopmost = value; _config.Save(); OnPropertyChanged(nameof(WidgetTopmost)); }
         }
 
+        // ---- widget variants (classic / minimal / board) ----
+
+        public static readonly string[] WidgetVariants = { "classic", "minimal", "board" };
+        private static readonly int[] WidgetVariantWidths = { 380, 280, 160 };
+
+        public string WidgetVariant
+        {
+            get
+            {
+                var v = (_config.Current.WidgetVariant ?? "").ToLowerInvariant();
+                return WidgetVariants.Contains(v) ? v : "classic";
+            }
+            set
+            {
+                var v = (value ?? "").ToLowerInvariant();
+                if (!WidgetVariants.Contains(v)) v = "classic";
+                if (_config.Current.WidgetVariant == v) return;
+                _config.Current.WidgetVariant = v;
+                _config.Save();
+                OnPropertyChanged(nameof(WidgetVariant));
+                OnPropertyChanged(nameof(WidgetHasFullHeader));
+                OnPropertyChanged(nameof(WidgetHasStrip));
+                OnPropertyChanged(nameof(WidgetPixelWidth));
+            }
+        }
+
+        public void CycleWidgetVariant()
+        {
+            var i = Array.IndexOf(WidgetVariants, WidgetVariant);
+            WidgetVariant = WidgetVariants[(i + 1) % WidgetVariants.Length];
+        }
+
+        public bool WidgetHasFullHeader => WidgetVariant != "board";
+        public bool WidgetHasStrip => WidgetVariant == "classic";
+        public double WidgetPixelWidth => WidgetVariantWidths[Array.IndexOf(WidgetVariants, WidgetVariant)];
+
         public double? WidgetLeft => _config.Current.WidgetLeft;
         public double? WidgetTop => _config.Current.WidgetTop;
 
